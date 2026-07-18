@@ -52,3 +52,5 @@ EXIT 0 r5_loop_l2x4_gates_s95
 CHAIN_DONE r5_loop_l2x4_gates_s95 PSNR: 22.244
 EXIT 0 r5_loop_l2x4_chunk_s95
 CHAIN_DONE r5_loop_l2x4_chunk_s95 PSNR: 20.939
+EXIT 0 r5_loop_l2x6_rh_delta_s95
+CHAIN_DONE r5_loop_l2x6_rh_delta_s95 PSNR: 21.283
