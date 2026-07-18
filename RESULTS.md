@@ -98,8 +98,11 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | r5_loop_l2x6_rh_delta_s95 | read-heavy (input 2, tgt 6 loop) | ~1.00× | (진행중) | | | late-join의 역명제 검증 |
 | r5_loop_l2x4_gates_s95 | Déjà View gates | 1.00× | (진행중) | | | |
 | r5_loop_l2x4_rfb_s95 | render feedback (+delta+sup) | 1.03× | 22.002 | 0.2938 | −0.202 | **실패** — 자기 base(delta+sup 22.307)보다 −0.30 |
-| r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write | ~1.00× | (진행중) | | | |
+| r5_loop_l2x4_gates_s95 | Déjà View gates | 1.00× | 22.244 | 0.2866 | +0.040 (t=7.6) | knob급 소폭 — Déjà View 스케일 전이 안 됨 |
+| r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write (muon→1) | ~1.00× | 20.939 | 0.3257 | **−1.265** | **대실패** — NVS엔 대청크가 옳음 (LaCT 선택 재확인) |
 | r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | (진행중) | | | |
+| r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | (진행중) | | | |
+| r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | (진행중) | | | 곡선 중간점/실용 후보 |
 
 - **Test-time loop 외삽 실패** (기존 ckpt eval): L2×6 모델→4/8 loop = 20.4/18.3; L2×4→5/6 = 20.7/19.1.
   고정-L 훈련은 다른 L로 추론 불가 (Ouro와 일치). test-time scaling엔 stochastic-L 훈련 필요 — 보류.
