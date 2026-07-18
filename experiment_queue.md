@@ -22,8 +22,14 @@
 2. **r3_loop_l2x4_delta_s95** — 챔피언(reset)에 I3 delta writes.
 3. **r3_loop_l1x8_s95** — 극한 tying: 1블록×8loop.
 4. **r3_loop_l4x2_s95** — 완화 tying: 4블록×2loop.
-5. 보류: reset+lrs (carry에서 무효과라 우선순위 하락). r4 후보: I6 per-loop supervision
-   (+test-time loop scaling), I8 write→read split, carry+delta+rho2 조합, 승자 seed 검증.
+5. **r4_loop_l2x4_sup_s95** — 챔피언 + I6 per-loop supervision (구현·스모크 완료):
+   `chain_run.sh <gpu> r4_loop_l2x4_sup_s95 config/loop_l2x4_d256_p16.yaml 95 --loop_sup_weight 0.5`
+6. 보류: reset+lrs. r4 후보: r3 결과 따라 delta/rho2 조합, I8 write→read split,
+   test-time loop-count sweep (n_loops을 eval에서 바꿔 외삽 확인), 승자 seed 검증.
+
+## 3-seed 판정 기준 (교훈, 2026-07-18)
+- L8 앵커 seed 분산 0.22dB — **단일 seed Δ<0.2dB는 절대 결론 금지.**
+- 앞으로 승자 후보는 s95에서 이기면 s96/s97 즉시 큐잉, 3-seed paired 평균으로만 헤드라인.
 
 ## 완료 후 규칙
 - eval.json 나오면 RESULTS.md에 PSNR/LPIPS + baseline 대비 paired Δ 기록.

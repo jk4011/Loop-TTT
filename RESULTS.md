@@ -59,6 +59,21 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
   결과를 재정규화하므로 lr의 크기 정보는 지워짐 (방향 가중만 남음). → 스텝 크기를 misfit에
   반응시키려면 **NS 이후에** 스케일해야 함 = `rho2` (post-NS chunk-level scaling, r3에서 검증).
 
+## 라운드 3 (진행 중)
+
+| exp | config | PSNR | LPIPS | 비고 |
+|---|---|---|---|---|
+| r3_loop_l2x4_carry_rho2_s95 | carry + I2' post-NS scaling | 21.789±0.146 | 0.3007 | **구제 실패** (+0.04 vs carry, 노이즈) — 스텝-크기 가설 최종 기각 |
+| r3_loop_l2x4_delta_s95 | reset + delta | **22.260±0.148** | **0.2876** | **신기록 — reset 대비 paired +0.056, t=6.98** (s96/s97 검증 중) |
+| r3_loop_l1x8_s95 | 1블록×8loop (~2M) | 22.007±0.147 | 0.3016 | reset L2×4 대비 −0.20 — 극한 tying도 L8 s95급 |
+| r3_loop_l4x2_s95 | 4블록×2loop (~7M) | 22.077±0.147 | 0.2835 | PSNR은 L2×4 열세, LPIPS는 우세 |
+
+- loop 형태 (s95): L1×8 22.007 < L4×2 22.077 < **L2×4 22.204** — PSNR 스윗스팟 = L2×4.
+- **LPIPS는 고유 층수를 따라감**: L1×8 0.3016 > L2×4 0.2877 > L4×2 0.2835 ≈ L8 0.2839.
+  → 지각 품질 갭은 고유 파라미터 부족 문제일 가능성; I6 supervision이 loop로 이를 메꿀 수 있는지 r4에서 확인.
+
+- rho/rho2/lrs 모두 무효, delta만 유효 → **carry 병리 = 중복 콘텐츠 재기록 (WHAT), 스텝 크기(HOW BIG) 아님.**
+
 ### 라운드 2 결론
 - **reset loop(22.204)가 챔피언 유지.** 시도한 4개 변형 모두 하회.
 - carry 병리의 원인 규명: 스텝 크기(rho/lrs 무효)가 아니라 **중복 콘텐츠 재기록** — 타겟을
