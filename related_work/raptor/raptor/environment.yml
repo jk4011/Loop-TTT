@@ -1,0 +1,31 @@
+name: raptor
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.12
+  - pytorch=2.3.1
+  - torchvision
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - scikit-image
+  - matplotlib
+  - seaborn
+  - pillow
+  - h5py
+  - zarr
+  - timm
+  - wandb
+  - python-dotenv
+  - ipykernel
+  - ipywidgets
+  - jupyterlab
+  - notebook
+  - einops
+  - ignite
+  - pip
+  - pip:
+    - Overcomplete

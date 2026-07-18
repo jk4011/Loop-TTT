@@ -252,3 +252,22 @@ Additional 2025–2026 loop papers worth knowing:
    (ii) the field is moving fast (5+ loop papers in May–Jul 2026 alone) — someone could loop TTT in LMs any month;
    the vision/NVS + large-chunk angle and the state-policy analysis are our moat, so move fast on the state-carry
    experiments.
+
+---
+
+## (E) Local Library Index (`related_work/`)
+
+Each folder: paper PDF, official code where it exists (shallow-cloned, `.git` removed), and a
+project-angled `CLAUDE.md`.
+
+| Folder | Paper (arXiv) | Code in folder | One-line relevance to Loop-TTT |
+|---|---|---|---|
+| `lact/` | LaCT (2505.23884) | — (code lives at `../lact/`) | The substrate: the SwiGLU/Muon large-chunk TTT block we loop |
+| `ttt/` | TTT RNNs (2407.04620) | `ttt-lm-pytorch/` | Inner/outer-loop framing; more inner steps = better → loop-as-extra-inner-epochs |
+| `lvsm/` | LVSM (2410.17242) | `LVSM/` | Task backbone; the deep decoder-only NVS stack whose depth we replace with iteration |
+| `looped_tf_latent_thoughts/` | Latent Thoughts (2502.17416) | none released | (k⊗L) methodology + loops-buy-reasoning-not-memory expectation setting |
+| `deja_view/` | Déjà View (2605.30215) | `dvlt/` | Vision-side twin: tied-beats-untied in 3D recon; K~Beta(2,1)∈[8,16] + time/state gates recipe |
+| `raptor/` | RAPTOR (2512.19941) | `raptor/` | Evidence ViT depth ≈ few recurrent phases; max-cut phase analysis + distillation plan B |
+| `lt2/` | LT2 (2605.20670) | `LT2/` | Closest prior: looped linear mixers, ρ-gate, stability ranking; names cross-loop state carry as open — our axis |
+| `huginn/` | Huginn (2502.05171) | `recurrent-pretraining/` | The scale-proven stabilizer kit: sandwich norm, input injection, log-normal Poisson r, TBPTT k=8 |
+| `ouro/` | Ouro/LoopLM (2510.25741) | `hf_modeling_code/` (HF release) | 7.7T-token proof loops scale; entropy-regularized exit gate for future adaptive-K |
