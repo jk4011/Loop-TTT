@@ -200,7 +200,8 @@ class LaCTLVSM(nn.Module):
     def __init__(self, patch_size, dim, layers, block_config,
                  n_loops=1, ttt_state_mode="reset", input_injection="none",
                  loop_film=False, view_schedule="all", update_chunks=1,
-                 render_feedback=False, target_loops=0, loop_gates=False):
+                 render_feedback=False, target_loops=0, loop_gates=False,
+                 input_loops=0):
         """
         Looped-TTT extension of LaCT LVSM.
 
@@ -242,7 +243,15 @@ class LaCTLVSM(nn.Module):
         # T loops; earlier loops run on input tokens only (input-only pass costs
         # ~0.66x of a full pass, and the memory trajectory is unchanged since
         # targets never influence inputs). 0 = targets in every loop (baseline).
+        # [r5 result: target read depth matters a lot — late-join FAILED (-1.66).]
         self.target_loops = target_loops
+        # input_loops=K (read-heavy / write->read split): input tokens participate
+        # only in the FIRST K loops (memory writing); the remaining loops run on
+        # target tokens only, re-applying the loop-K fast-weight states (deep
+        # iterative read-out). Target-only pass costs ~0.5x of a full pass.
+        # 0 = inputs in every loop (baseline). Mutually exclusive with target_loops.
+        assert not (target_loops > 0 and input_loops > 0)
+        self.input_loops = input_loops
 
         self.pose_keys = ["ray_o", "ray_d", "o_cross_d"]
         self.posed_image_keys = self.pose_keys + ["normalized_image"]
@@ -344,14 +353,20 @@ class LaCTLVSM(nn.Module):
             "num_img_tokens": num_img_tokens,
         }
         join_loop = self.n_loops - self.target_loops if self.target_loops > 0 else 0
-        op_order_of_loop = [
-            self._loop_ttt_op_order(
-                li, num_input_views, num_img_tokens,
-                num_input_tokens if li < join_loop else num_input_tokens + num_target_tokens)
-            for li in range(self.n_loops)
-        ]
+        op_order_of_loop = []
+        for li in range(self.n_loops):
+            if self.input_loops > 0 and li >= self.input_loops:
+                # read-heavy phase: target tokens only, apply-only (memory frozen)
+                op_order_of_loop.append(
+                    [TTTOperator(start=0, end=num_target_tokens, update=False, apply=True)])
+            else:
+                op_order_of_loop.append(self._loop_ttt_op_order(
+                    li, num_input_views, num_img_tokens,
+                    num_input_tokens if li < join_loop else num_input_tokens + num_target_tokens))
+        if self.target_loops > 0 or self.input_loops > 0:
+            assert self.input_injection == "none"
         if self.target_loops > 0:
-            assert self.input_injection == "none" and not self.render_feedback
+            assert not self.render_feedback
 
         x = rearrange(
             transformer_input,
@@ -363,6 +378,7 @@ class LaCTLVSM(nn.Module):
         x = self.input_layernorm(x)
         x0 = x if self.input_injection == "add" else None
         block_states = [{} for _ in self.blocks]
+        saved_states = [{} for _ in self.blocks]
         loop_renders = []
         frozen_targets = None
         for loop_idx in range(self.n_loops):
@@ -373,16 +389,24 @@ class LaCTLVSM(nn.Module):
                 elif loop_idx == join_loop and frozen_targets is not None:
                     x = torch.cat([x, frozen_targets], dim=1)
                     frozen_targets = None
+            read_phase = self.input_loops > 0 and loop_idx >= self.input_loops
+            if self.input_loops > 0 and loop_idx == self.input_loops:
+                x = x[:, num_input_tokens:]  # drop input tokens; memory is written
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
             x_loop_start = x if self.loop_rho is not None else None
             for block_idx, block in enumerate(self.blocks):
+                extra_state = saved_states[block_idx] if read_phase else block_states[block_idx]
                 block_info = {**info, "loop_idx": loop_idx,
                               "ttt_op_order": op_order_of_loop[loop_idx],
-                              **block_states[block_idx]}
+                              **extra_state}
                 x, result = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
+                        key: result[key] for key in ("w0", "w1", "w2") if key in result
+                    }
+                if self.input_loops > 0 and loop_idx == self.input_loops - 1:
+                    saved_states[block_idx] = {
                         key: result[key] for key in ("w0", "w1", "w2") if key in result
                     }
             if x_loop_start is not None:
