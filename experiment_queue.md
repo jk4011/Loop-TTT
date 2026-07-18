@@ -6,23 +6,23 @@
 > → eval: 256 held-out scenes, 8in/4tgt, PSNR/LPIPS (paired per-scene) → outputs/<exp>/eval.json
 > 명명: r<round>_<config요약>_s<seed>
 
-## RUNNING (라운드 2, 2026-07-18 저녁)
+## RUNNING (seed 검증 wave, 2026-07-18 밤 — 전부 ~22:40 종료 예상)
 
-| GPU | exp | config | 예상 종료 |
-|---|---|---|---|
-| 0 | r2_loop_l2x4_carry_delta_s95 | I3 delta writes (carry) | ~20:55 |
-| 1 | r2_loop_l2x4_carry_lrs_s95 | I4 per-loop LR bias (carry) | ~20:20 |
-| 2 | r2_loop_l2x4_inject_s95 | input injection (reset 챔피언 강화) | ~21:05 |
-| 3 | r2_loop_l2x4_carry_rho_s95 | I2 residual-gated LR (carry) | ~20:45 |
+| GPU | exp | config |
+|---|---|---|
+| 0 | r1_lact_l8_s96 | L8 seed 96 |
+| 1 | r1_loop_l2x4_s96 | reset loop seed 96 |
+| 2 | r1_lact_l8_s97 | L8 seed 97 |
+| 3 | r1_loop_l2x4_s97 | reset loop seed 97 |
 
-## QUEUE (우선순위순 — GPU 빌 때마다 pop)
+## QUEUE (우선순위순 — GPU 빌 때마다 pop; 라운드 3 config 준비 완료)
 
-1. **r1 seed 검증 (헤드라인 보호)**: loop_l2x4(reset) s96, s97 + lact_l8 s96, s97 — 4런.
-   "naive loop가 L8 역전 +0.25dB"는 단일 seed라 반드시 3-seed 확인.
-2. **r3_loop_l2x4_lrs_s95** — champion(reset)에 I4 per-loop LR bias (lrs는 carry 불필요; config 추가 필요).
-3. r3: loop shape sweep (reset): loop_l1x8, loop_l4x2 — 재사용 극한/완화 지점 탐색.
-4. r3: r2 결과에 따라 — carry가 구제되면 구제법 조합/seed 검증; 안되면 reset 계열 심화
-   (I6 per-loop supervision, I8 write→read split, I7 inner epochs).
+1. **r3_loop_l2x4_lrs_s95** — 챔피언(reset)에 I4 per-loop LR bias (`loop_l2x4_lrs_d256_p16.yaml`).
+2. **r3_loop_l2x4_delta_s95** — 챔피언에 I3 delta writes (`loop_l2x4_delta_d256_p16.yaml`).
+3. **r3_loop_l1x8_s95** — 극한 tying: 1블록×8loop (`loop_l1x8_d256_p16.yaml`).
+4. **r3_loop_l4x2_s95** — 완화 tying: 4블록×2loop (`loop_l4x2_d256_p16.yaml`).
+5. r4 후보: I6 per-loop supervision(+test-time loop scaling), I8 write→read split,
+   carry+delta+게이트(I10) 조합, 승자 seed 검증.
 
 ## 완료 후 규칙
 - eval.json 나오면 RESULTS.md에 PSNR/LPIPS + baseline 대비 paired Δ 기록.

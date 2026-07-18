@@ -26,7 +26,14 @@
 
 | exp | config | PSNR | LPIPS | vs reset-loop | 비고 |
 |---|---|---|---|---|---|
-| r2_loop_l2x4_carry_lrs_s95 | carry + I4 per-loop LR bias | (진행중) | | | carry 구제 시도 1 |
-| r2_loop_l2x4_carry_rho_s95 | carry + I2 residual-gated LR | (진행중) | | | carry 구제 시도 2 |
-| r2_loop_l2x4_carry_delta_s95 | carry + I3 delta writes | (진행중) | | | carry 구제 시도 3 |
-| r2_loop_l2x4_inject_s95 | reset + input injection | (진행중) | | | champion(reset) 강화 시도 |
+| r2_loop_l2x4_carry_lrs_s95 | carry + I4 per-loop LR bias | 21.759±0.146 | 0.2995 | −0.445 | **구제 실패** — plain carry와 동일 |
+| r2_loop_l2x4_carry_rho_s95 | carry + I2 residual-gated LR | 21.727±0.146 | 0.3009 | −0.477 | **구제 실패** — plain carry와 동일 |
+| r2_loop_l2x4_carry_delta_s95 | carry + I3 delta writes | 21.984±0.148 | 0.2955 | −0.220 | **부분 구제** (+0.23 vs plain carry; L8은 초과, reset엔 미달) |
+| r2_loop_l2x4_inject_s95 | reset + input injection | 22.149±0.148 | 0.2958 | −0.054 (t=−3.6) | 도움 안 됨 — attention-loop 안정화 기법이 TTT에 전이 안 됨 |
+
+### 라운드 2 결론
+- **reset loop(22.204)가 챔피언 유지.** 시도한 4개 변형 모두 하회.
+- carry 병리의 원인 규명: 스텝 크기(rho/lrs 무효)가 아니라 **중복 콘텐츠 재기록** — 타겟을
+  innovation(v − f_w(k))으로 바꾼 delta만 +0.23dB 부분 구제. → "TTT loop에서 상태를 살리려면
+  메모리가 이미 아는 것을 다시 쓰면 안 된다"는 mechanism-level 발견.
+- Huginn식 input injection 무효 → TTT loop의 안정화 요구는 attention loop와 다름 (차별점 근거).
