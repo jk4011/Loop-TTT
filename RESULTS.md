@@ -79,12 +79,28 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 
 - rho/rho2/lrs 모두 무효, delta만 유효 → **carry 병리 = 중복 콘텐츠 재기록 (WHAT), 스텝 크기(HOW BIG) 아님.**
 
+## Loop-count 스케일링 발견 (2026-07-19, big-swing phase의 근거)
+
+| exp | compute | PSNR | LPIPS | 비고 |
+|---|---|---|---|---|
+| r3_loop_l2x6_delta_s95 | **1.5×** | **22.648±0.149** | **0.2725** | vs L2×4+delta **+0.388 (t=33.8)**; LPIPS가 L8(0.2839)을 대폭 역전 |
+
+- **Loop 수가 유일한 dB급 레버임이 확정.** knob들(+0.03~0.08)과 대비됨.
+- iso-compute 전략: target 토큰은 memory에 무영향(F1, 코드로 검증됨) → 초반 loop에서 target 제외
+  (input-only pass = 0.66×)하면 같은 비용으로 loop를 더 살 수 있음 = **late-join**.
+- L2×5-lj(target은 마지막 2 loop만) = input 깊이 10, 0.99× compute — wave 5 1순위.
+
 ## 라운드 4 (진행 중)
 
 | exp | config | PSNR | LPIPS | paired Δ vs reset(s95) | 비고 |
 |---|---|---|---|---|---|
 | r4_loop_l2x4_sup_s95 | reset + I6 per-loop supervision | 22.287±0.149 | 0.2885 | **+0.083 (t=7.9)** | 두 번째 유효 개선 (loss-side) |
-| r4_loop_l2x4_delta_sup_s95 | delta + sup 결합 | (진행중) | | | 두 승자 stack |
+| r4_loop_l2x4_sup_s96 | 〃 (s96) | 22.130±0.147 | 0.2893 | +0.043 (t=5.0) | |
+| r4_loop_l2x4_sup_s97 | 〃 (s97) | 22.154±0.148 | 0.2927 | +0.094 (t=11.8) | |
+
+- **sup 3-seed 확정: 평균 +0.073, 3/3 seed 양성 — 첫 3-seed 통과 메커니즘.** (지금까지 확정 효과:
+  sup +0.073 ✓, delta +0.029 (2/3), delta+sup +0.103 (s95 단일). 모두 소폭 → wave 5가 승부.)
+| r4_loop_l2x4_delta_sup_s95 | delta + sup 결합 | 22.307±0.148 | 0.2879 | +0.103 | sub-additive (0.056+0.083→0.103); L2×4 iso-compute 최고 기록 |
 
 ### 라운드 2 결론
 - **reset loop(22.204)가 챔피언 유지.** 시도한 4개 변형 모두 하회.

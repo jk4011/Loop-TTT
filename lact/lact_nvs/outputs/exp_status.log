@@ -38,3 +38,9 @@ EXIT 0 r3_loop_l2x4_delta_s97
 CHAIN_DONE r3_loop_l2x4_delta_s97 PSNR: 22.111
 EXIT 0 r3_loop_l2x6_delta_s95
 CHAIN_DONE r3_loop_l2x6_delta_s95 PSNR: 22.648
+EXIT 0 r4_loop_l2x4_delta_sup_s95
+CHAIN_DONE r4_loop_l2x4_delta_sup_s95 PSNR: 22.307
+EXIT 0 r4_loop_l2x4_sup_s96
+CHAIN_DONE r4_loop_l2x4_sup_s96 PSNR: 22.130
+EXIT 0 r4_loop_l2x4_sup_s97
+CHAIN_DONE r4_loop_l2x4_sup_s97 PSNR: 22.154

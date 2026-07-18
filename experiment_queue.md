@@ -15,7 +15,16 @@
 | 2 | r1_lact_l8_s97 | L8 seed 97 |
 | 3 | r1_loop_l2x4_s97 | reset loop seed 97 |
 
-## QUEUE (우선순위순 — GPU 빌 때마다 pop; 라운드 3 config 준비·검증 완료)
+## WAVE 5 (big-swing: 목표 naive loop +0.5dB @ iso-compute) — 준비·스모크 완료
+
+- GPU2 실행 중: **r5_loop_l2x5_lj_delta_s95** (late-join, 0.99×, +sup) ← L2×6 스케일링 발견 기반 1순위
+- 다음 슬롯: **r5_loop_l2x4_rfb_s95** (render feedback + delta, `--loop_sup_weight 0.5`)
+- 다음 슬롯: **r5_loop_l2x4_gates_s95** (Déjà View branch/state gates + LT2 rho)
+- 다음 슬롯: **r5_loop_l2x4_chunk_s95** (4-chunk 순차 delta write, muon 5→1)
+- wave 6 후보: latejoin×gates×chunk 승자 조합, L2×7 strided-coarse (agent 제안), SfM-v2,
+  analysis-by-synthesis final pass, sfm(이미 config 있음), L2×6-lj(1.16×, 상한 확인용)
+
+## QUEUE (구 라운드 — 참고용)
 
 1. **r3_loop_l2x4_carry_rho2_s95** — I2' 수정판: post-NS residual scaling (프로브가 지목한
    병리를 정확히 겨냥; carry 구제의 결정적 시험) (`loop_l2x4_carry_rho2_d256_p16.yaml`).
