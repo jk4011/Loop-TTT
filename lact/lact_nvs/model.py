@@ -93,7 +93,7 @@ class MLP(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, dim, bias, block_config):
+    def __init__(self, dim, bias, block_config, n_loops_max=1, loop_film=False):
         super().__init__()
         module_list = []
         self.length_dim_list = []
@@ -112,11 +112,23 @@ class Block(nn.Module):
 
         self.module_list = nn.ModuleList(module_list)
 
+        # Per-loop channel-wise FiLM on each sub-module's LN output (Deja View's
+        # per-step scales, found essential for tied-beating-untied there).
+        # Zero-init -> exact identity at start. [n_loops, n_submodules, 2, dim]
+        self.loop_film = None
+        if loop_film:
+            self.loop_film = nn.Parameter(
+                torch.zeros(n_loops_max, len(module_list), 2, dim)
+            )
+
     def forward(self, x, info):
         results = {}
-        for module, length_dim in zip(self.module_list, self.length_dim_list):
+        for mod_idx, (module, length_dim) in enumerate(zip(self.module_list, self.length_dim_list)):
             residual = x
             x = module["ln"](x)
+            if self.loop_film is not None:
+                film = self.loop_film[info.get("loop_idx", 0), mod_idx]
+                x = x * (1 + film[0]) + film[1]
 
             if length_dim == "l":
                 b, vl, d = x.shape
@@ -173,7 +185,8 @@ def compute_rays(fxfycxcy, c2w, h, w):
 
 class LaCTLVSM(nn.Module):
     def __init__(self, patch_size, dim, layers, block_config,
-                 n_loops=1, ttt_state_mode="reset", input_injection="none"):
+                 n_loops=1, ttt_state_mode="reset", input_injection="none",
+                 loop_film=False, view_schedule="all"):
         """
         Looped-TTT extension of LaCT LVSM.
 
@@ -193,8 +206,14 @@ class LaCTLVSM(nn.Module):
         self.n_loops = n_loops
         assert ttt_state_mode in ("reset", "carry")
         assert input_injection in ("none", "add")
+        assert view_schedule in ("all", "incremental")
         self.ttt_state_mode = ttt_state_mode
         self.input_injection = input_injection
+        # "incremental": loop pass i updates the fast-weight memory ONLY on the
+        # i-th contiguous chunk of input views (incremental scene registration,
+        # SfM-style); apply still covers all tokens. Update FLOPs drop n_loops x.
+        # Pair with ttt_state_mode=carry so registrations accumulate.
+        self.view_schedule = view_schedule
 
         self.pose_keys = ["ray_o", "ray_d", "o_cross_d"]
         self.posed_image_keys = self.pose_keys + ["normalized_image"]
@@ -203,7 +222,8 @@ class LaCTLVSM(nn.Module):
         self.input_linear = nn.Linear(self.input_dim * (self.patch_size**2), self.dim, bias=False)
         self.input_layernorm = nn.LayerNorm(self.dim, bias=False)
         self.blocks = nn.ModuleList([
-            Block(dim=self.dim, bias=False, block_config=block_config)
+            Block(dim=self.dim, bias=False, block_config=block_config,
+                  n_loops_max=n_loops, loop_film=loop_film)
             for _ in range(layers)
         ])
 
@@ -220,7 +240,21 @@ class LaCTLVSM(nn.Module):
         for pn, p in self.named_parameters():
             if pn.endswith("c_proj.weight"):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(len(block_config) * layers * n_loops))
-    
+
+    def _loop_ttt_op_order(self, loop_idx, num_input_views, num_img_tokens, apply_end):
+        num_input_tokens = num_input_views * num_img_tokens
+        if self.view_schedule == "incremental" and self.n_loops > 1:
+            chunk = max(1, num_input_views // self.n_loops)
+            start_v = min(loop_idx * chunk, num_input_views - chunk)
+            update_op = TTTOperator(
+                start=start_v * num_img_tokens,
+                end=(start_v + chunk) * num_img_tokens,
+                update=True, apply=False,
+            )
+        else:
+            update_op = TTTOperator(start=0, end=num_input_tokens, update=True, apply=False)
+        return [update_op, TTTOperator(start=0, end=apply_end, update=False, apply=True)]
+
     def forward(self, input_data_dict, target_data_dict, return_all_loops=False):
             # Do not autocast during the data processing
         with torch.autocast(device_type="cuda", enabled=False), torch.no_grad():
@@ -256,14 +290,14 @@ class LaCTLVSM(nn.Module):
         num_img_tokens = h * w // (self.patch_size**2)
         num_input_tokens = num_input_views * num_img_tokens
         num_target_tokens = num_target_views * num_img_tokens
-        ttt_op_order = [
-            TTTOperator(start=0, end=num_input_tokens, update=True, apply=False),
-            TTTOperator(start=0, end=num_input_tokens + num_target_tokens, update=False, apply=True),
-        ]
         info = {
-            "ttt_op_order": ttt_op_order,
             "num_img_tokens": num_img_tokens,
         }
+        op_order_of_loop = [
+            self._loop_ttt_op_order(li, num_input_views, num_img_tokens,
+                                    num_input_tokens + num_target_tokens)
+            for li in range(self.n_loops)
+        ]
 
         x = rearrange(
             transformer_input,
@@ -280,7 +314,9 @@ class LaCTLVSM(nn.Module):
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
             for block_idx, block in enumerate(self.blocks):
-                block_info = {**info, "loop_idx": loop_idx, **block_states[block_idx]}
+                block_info = {**info, "loop_idx": loop_idx,
+                              "ttt_op_order": op_order_of_loop[loop_idx],
+                              **block_states[block_idx]}
                 x, result = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
@@ -331,13 +367,13 @@ class LaCTLVSM(nn.Module):
         # Running the model
         num_img_tokens = h * w // (self.patch_size**2)
         num_input_tokens = num_input_views * num_img_tokens
-        ttt_op_order = [
-            TTTOperator(start=0, end=num_input_tokens, update=True, apply=True),
-        ]
         info = {
-            "ttt_op_order": ttt_op_order,
             "num_img_tokens": num_img_tokens,
         }
+        op_order_of_loop = [
+            self._loop_ttt_op_order(li, num_input_views, num_img_tokens, num_input_tokens)
+            for li in range(self.n_loops)
+        ]
 
         x = rearrange(
             posed_image,
@@ -356,7 +392,9 @@ class LaCTLVSM(nn.Module):
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
             for block_idx, block in enumerate(self.blocks):
-                block_info = {**info, "loop_idx": loop_idx, **block_states[block_idx]}
+                block_info = {**info, "loop_idx": loop_idx,
+                              "ttt_op_order": op_order_of_loop[loop_idx],
+                              **block_states[block_idx]}
                 x, state = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
