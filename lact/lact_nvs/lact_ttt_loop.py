@@ -7,8 +7,14 @@ LoopFastWeightGluMLPMultihead adds loop-aware mechanisms selected by a single
   lrs   (I4) per-loop learnable lr bias: lr = softplus(lr_fc(x) + base_lr_inv
         + loop_lr_bias[loop_idx]). Zero-init -> exact baseline at start.
   rho   (I2) residual-gated lr: scale per-token lr by rho = 1 - cos(f_w(k), v),
-        detached. Update magnitude becomes proportional to the current misfit,
-        restoring the contraction property that Muon/NS normalization erases.
+        detached. NOTE (probe finding, r2): lr multiplies INSIDE the NS argument,
+        and NS re-normalizes the result -> magnitude info erased downstream.
+        rho therefore only reweights token directions; PSNR-neutral in r2.
+  rho2  (I2') post-NS residual scaling: multiply each NS-orthogonalized gradient
+        by the chunk-level misfit rho_bar = mean(1 - cos(f_w(k), v)) in [0, 2],
+        AFTER orthogonalization. This is the corrected fix for the measured
+        pathology (dw1_rel does not decay across carry loops): steps now shrink
+        as the fit closes -> contraction instead of constant-angle orbit.
   delta (I3) delta writes: regress onto the innovation v - f_w(k) instead of v,
         so already-explained content is not re-written (fixed point at perfect fit).
 
@@ -33,6 +39,7 @@ def _loop_fast_weight_apply(
     w0, w1, w2, q, k, v, lr0, lr1, lr2, ttt_ua_order,
     muon_update_steps: int = 0,
     rho_gate: bool = False,
+    rho_post: bool = False,
     delta: bool = False,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply with
@@ -56,7 +63,7 @@ def _loop_fast_weight_apply(
             hidden_before_mul = ki @ w2_now
             hidden = F.silu(gate_before_act, inplace=False) * hidden_before_mul
 
-            if rho_gate or delta:
+            if rho_gate or rho_post or delta:
                 # Current memory prediction for the update keys (one extra bmm).
                 f_k = hidden @ w1_now  # [b, l, d]
 
@@ -66,6 +73,13 @@ def _loop_fast_weight_apply(
                 lr0i = lr0i * rho
                 lr1i = lr1i * rho
                 lr2i = lr2i * rho
+
+            if rho_post:
+                # Chunk-level misfit in [0, 2]; ~1 at init (cos ~ 0), -> 0 as the
+                # memory explains the chunk. Applied AFTER NS (see module docstring).
+                rho_bar = (
+                    1.0 - F.cosine_similarity(f_k, vi, dim=-1).mean(dim=1)
+                ).detach()[:, None, None]
 
             vt = vi - f_k if delta else vi
 
@@ -83,6 +97,10 @@ def _loop_fast_weight_apply(
             w2_grad = zeropower_via_newtonschulz5(
                 (ki * lr2i).transpose(-1, -2) @ dhidden_before_mul, muon_update_steps
             )
+            if rho_post:
+                w1_grad = w1_grad * rho_bar
+                w0_grad = w0_grad * rho_bar
+                w2_grad = w2_grad * rho_bar
             w1_now = w1_now + w1_grad
             w0_now = w0_now + w0_grad
             w2_now = w2_now + w2_grad
@@ -108,7 +126,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
     def __init__(self, *args, loop_mode="none", n_loops_max=8, **kwargs):
         super().__init__(*args, **kwargs)
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
-        known = {"lrs", "rho", "delta"}
+        known = {"lrs", "rho", "rho2", "delta"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
         self.loop_flags = flags
         self.n_loops_max = n_loops_max
@@ -152,6 +170,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
             muon_update_steps=self.muon_update_steps,
             rho_gate="rho" in self.loop_flags,
+            rho_post="rho2" in self.loop_flags,
             delta="delta" in self.loop_flags,
         )
 

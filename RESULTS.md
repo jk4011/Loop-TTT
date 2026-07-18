@@ -31,6 +31,21 @@
 | r2_loop_l2x4_carry_delta_s95 | carry + I3 delta writes | 21.984±0.148 | 0.2955 | −0.220 | **부분 구제** (+0.23 vs plain carry; L8은 초과, reset엔 미달) |
 | r2_loop_l2x4_inject_s95 | reset + input injection | 22.149±0.148 | 0.2958 | −0.054 (t=−3.6) | 도움 안 됨 — attention-loop 안정화 기법이 TTT에 전이 안 됨 |
 
+### 메커니즘 프로브 (probe_loop_fit.py, 16 scenes, 학습된 s95 체크포인트)
+
+loop별 TTT layer의 (cos_pre = update 전 fast weight가 타겟을 설명하는 정도,
+cos_post = update 후, dw1_rel = 상대 스텝 크기):
+
+- **carry**: cos_pre는 loop마다 상승(0.14→0.33)하지만 **cos_post는 하락**(0.70→0.62→0.53→0.41),
+  **dw1_rel은 감소하지 않음**(0.16→0.30→0.44→0.44) → **constant-angle orbit 병리가 그대로 측정됨.**
+  후기 loop의 update는 사실상 역효과.
+- **reset**(챔피언): 매 loop cos_pre ≈ −0.2~0 (백지에서 시작), cos_post 0.3~0.56. loop 이득은
+  메모리 누적이 아니라 **feature 정제**에서 옴. x_rms 안정(발산 없음).
+- **carry+delta**: carry 대비 cos_pre 최고(0.29~0.38), cos_post 하락 완화 → 부분 구제와 일치.
+- **구현 통찰 (rho 실패 원인)**: per-token lr은 NS orthogonalization의 **안쪽**에 곱해지고 NS가
+  결과를 재정규화하므로 lr의 크기 정보는 지워짐 (방향 가중만 남음). → 스텝 크기를 misfit에
+  반응시키려면 **NS 이후에** 스케일해야 함 = `rho2` (post-NS chunk-level scaling, r3에서 검증).
+
 ### 라운드 2 결론
 - **reset loop(22.204)가 챔피언 유지.** 시도한 4개 변형 모두 하회.
 - carry 병리의 원인 규명: 스텝 크기(rho/lrs 무효)가 아니라 **중복 콘텐츠 재기록** — 타겟을

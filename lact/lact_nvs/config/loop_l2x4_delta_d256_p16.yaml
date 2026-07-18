@@ -1,4 +1,5 @@
 # I3 on the champion: reset loop + delta writes (regress onto v - f_w(k)).
+patch_size: 16
 dim: 256
 layers: 2
 n_loops: 4

@@ -1,10 +1,9 @@
-# I4 on the champion: naive reset loop + per-loop learnable lr bias
+# I2-corrected: carry + post-NS residual scaling (rho2) — step size shrinks as fit closes.
 patch_size: 16
-# (loop-symmetry breaking without state carry).
 dim: 256
 layers: 2
 n_loops: 4
-ttt_state_mode: reset
+ttt_state_mode: carry
 input_injection: none
 
 block_config:
@@ -20,7 +19,7 @@ block_config:
       inter_multi: 2
       base_lr: 0.01
       muon_update_steps: 5
-      loop_mode: lrs
+      loop_mode: rho2
       n_loops_max: 4
   - type: model.MLP
     length_dim: vl

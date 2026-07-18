@@ -15,14 +15,15 @@
 | 2 | r1_lact_l8_s97 | L8 seed 97 |
 | 3 | r1_loop_l2x4_s97 | reset loop seed 97 |
 
-## QUEUE (우선순위순 — GPU 빌 때마다 pop; 라운드 3 config 준비 완료)
+## QUEUE (우선순위순 — GPU 빌 때마다 pop; 라운드 3 config 준비·검증 완료)
 
-1. **r3_loop_l2x4_lrs_s95** — 챔피언(reset)에 I4 per-loop LR bias (`loop_l2x4_lrs_d256_p16.yaml`).
-2. **r3_loop_l2x4_delta_s95** — 챔피언에 I3 delta writes (`loop_l2x4_delta_d256_p16.yaml`).
-3. **r3_loop_l1x8_s95** — 극한 tying: 1블록×8loop (`loop_l1x8_d256_p16.yaml`).
-4. **r3_loop_l4x2_s95** — 완화 tying: 4블록×2loop (`loop_l4x2_d256_p16.yaml`).
-5. r4 후보: I6 per-loop supervision(+test-time loop scaling), I8 write→read split,
-   carry+delta+게이트(I10) 조합, 승자 seed 검증.
+1. **r3_loop_l2x4_carry_rho2_s95** — I2' 수정판: post-NS residual scaling (프로브가 지목한
+   병리를 정확히 겨냥; carry 구제의 결정적 시험) (`loop_l2x4_carry_rho2_d256_p16.yaml`).
+2. **r3_loop_l2x4_delta_s95** — 챔피언(reset)에 I3 delta writes.
+3. **r3_loop_l1x8_s95** — 극한 tying: 1블록×8loop.
+4. **r3_loop_l4x2_s95** — 완화 tying: 4블록×2loop.
+5. 보류: reset+lrs (carry에서 무효과라 우선순위 하락). r4 후보: I6 per-loop supervision
+   (+test-time loop scaling), I8 write→read split, carry+delta+rho2 조합, 승자 seed 검증.
 
 ## 완료 후 규칙
 - eval.json 나오면 RESULTS.md에 PSNR/LPIPS + baseline 대비 paired Δ 기록.
