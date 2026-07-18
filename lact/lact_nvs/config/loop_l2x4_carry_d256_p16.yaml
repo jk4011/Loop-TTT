@@ -1,0 +1,26 @@
+# Looped with fast-weight CARRY: loop i's fast weights seed loop i+1,
+# so looping performs more inner-loop TTT update steps on the scene regression.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: carry
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt.FastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4

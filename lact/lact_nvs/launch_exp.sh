@@ -1,0 +1,39 @@
+#!/bin/bash
+# Usage: launch_exp.sh <gpu> <expname> <config> [seed] [extra train.py args...]
+# Single-GPU 30k-iter training run with the standard experiment protocol
+# (same protocol as TTT_camera_embedding: L*/d256/p16, RE10K 256x256, 8in+8tgt,
+#  30k iters, bs16, lr1e-4, LPIPS from 5k).
+set -u
+GPU=$1
+EXP=$2
+CONFIG=$3
+SEED=${4:-95}
+shift; shift; shift
+[ $# -gt 0 ] && shift   # drop seed if present
+EXTRA_ARGS="$@"
+
+PY_ENV=/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin
+cd "$(dirname "$0")"
+mkdir -p outputs/$EXP
+
+# Dedicated NFS compile caches: default /tmp/torchinductor_* is noexec tmpfs and
+# crashes triton mid-train ("failed to map segment").
+REPO_ROOT="$(cd .. && pwd)"
+export TRITON_CACHE_DIR="$REPO_ROOT/.cache_triton_nvs"
+export TORCHINDUCTOR_CACHE_DIR="$REPO_ROOT/.cache_inductor_nvs"
+export TORCHINDUCTOR_COMPILE_THREADS=1
+mkdir -p "$TRITON_CACHE_DIR" "$TORCHINDUCTOR_CACHE_DIR"
+
+CUDA_VISIBLE_DEVICES=$GPU $PY_ENV/torchrun \
+  --rdzv-backend=c10d --rdzv-endpoint=localhost:0 --nproc_per_node=1 \
+  train.py \
+  --config $CONFIG \
+  --data_path /tmp/re10k/train_index.json --dataset re10k --scene_pose_normalize \
+  --expname $EXP \
+  --steps 30000 --warmup 1500 --lr 1e-4 --lpips_start 5000 --seed $SEED \
+  --bs_per_gpu 16 --num_all_views 15 --num_input_views 8 --num_target_views 8 \
+  --image_size 256 256 --num_workers 7 \
+  --save_every 10000 --log_every 200 \
+  $EXTRA_ARGS \
+  > outputs/$EXP/train.log 2>&1
+echo "EXIT $? $EXP" >> outputs/exp_status.log
