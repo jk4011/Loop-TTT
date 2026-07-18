@@ -279,7 +279,7 @@ class LaCTLVSM(nn.Module):
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
             for block_idx, block in enumerate(self.blocks):
-                block_info = {**info, **block_states[block_idx]}
+                block_info = {**info, "loop_idx": loop_idx, **block_states[block_idx]}
                 x, result = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
@@ -348,7 +348,7 @@ class LaCTLVSM(nn.Module):
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
             for block_idx, block in enumerate(self.blocks):
-                block_info = {**info, **block_states[block_idx]}
+                block_info = {**info, "loop_idx": loop_idx, **block_states[block_idx]}
                 x, state = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
@@ -409,6 +409,7 @@ class LaCTLVSM(nn.Module):
                 if visit_idx > 0 and visit_idx % len(self.blocks) == 0 and x0 is not None:
                     x = x + x0
                 block = self.blocks[visit_idx % len(self.blocks)]
+                info["loop_idx"] = visit_idx // len(self.blocks)
                 info.update(state)
                 x, _ = block(x, info)
 

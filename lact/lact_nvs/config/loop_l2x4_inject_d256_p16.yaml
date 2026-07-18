@@ -1,0 +1,27 @@
+# Naive loop (reset) + Huginn-style input injection: x <- x + x_embed at each
+# loop entry. Control for whether generic loop stabilizers explain any gains.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: add
+
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt.FastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
