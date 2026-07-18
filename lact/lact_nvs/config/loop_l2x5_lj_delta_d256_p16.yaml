@@ -1,0 +1,29 @@
+# Big-swing "late-join": 5 loops, targets only in the last 2 (input-only early
+# passes cost 0.66x) -> input depth 10 at 0.99x naive-loop FLOPs. + delta writes.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 5
+ttt_state_mode: reset
+input_injection: none
+target_loops: 2
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: delta
+      n_loops_max: 4
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
