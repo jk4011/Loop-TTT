@@ -96,7 +96,8 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 |---|---|---|---|---|---|---|
 | r5_loop_l2x5_lj_delta_s95 | late-join (tgt 마지막 2 loop) | 0.99× | 20.540 | 0.3571 | **−1.664** | **대실패 — target 읽기 깊이가 핵심 변수** |
 | r5_loop_l2x6_rh_delta_s95 | read-heavy (input 2, tgt 6 loop) | ~1.00× | 21.283 | 0.3219 | **−0.921** | **실패** — input 동결도 불가 |
-| r6_loop_l2x6_delta_d224_s95 | **width↔depth: d224로 6 loop 구매** | **~1.00×** | (진행중) | | | 삼각측량 기반 본명 후보 |
+| r6_loop_l2x6_delta_d224_s95 | width↔depth: d224로 6 loop | ~1.00× | 22.335 | 0.2879 | +0.132 (t=13.4) | 양성이나 부족 — 균일 width 절감이 비쌈 (d256×6 대비 −0.34) |
+| r6_loop_l2x5_ti1_s95 | d256 유지, TTT inter 2→1로 5 loop | ~0.93× | (진행중) | | | 영리한 절감: 메모리 용량만 절반 (프로브: 어차피 underfit) |
 
 ### Wave 5 삼각측량 결론 (2026-07-19)
 - target 깊이 축소 −1.66 / input 깊이 축소 −0.92 / **둘 다 깊게 +0.44 (1.5×)**
