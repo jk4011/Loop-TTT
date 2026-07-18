@@ -95,12 +95,20 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | exp | 메커니즘 | compute | PSNR | LPIPS | vs naive(s95) | 판정 |
 |---|---|---|---|---|---|---|
 | r5_loop_l2x5_lj_delta_s95 | late-join (tgt 마지막 2 loop) | 0.99× | 20.540 | 0.3571 | **−1.664** | **대실패 — target 읽기 깊이가 핵심 변수** |
-| r5_loop_l2x6_rh_delta_s95 | read-heavy (input 2, tgt 6 loop) | ~1.00× | (진행중) | | | late-join의 역명제 검증 |
+| r5_loop_l2x6_rh_delta_s95 | read-heavy (input 2, tgt 6 loop) | ~1.00× | 21.283 | 0.3219 | **−0.921** | **실패** — input 동결도 불가 |
+| r6_loop_l2x6_delta_d224_s95 | **width↔depth: d224로 6 loop 구매** | **~1.00×** | (진행중) | | | 삼각측량 기반 본명 후보 |
+
+### Wave 5 삼각측량 결론 (2026-07-19)
+- target 깊이 축소 −1.66 / input 깊이 축소 −0.92 / **둘 다 깊게 +0.44 (1.5×)**
+  → **loop 이득 = input·target joint co-refinement. 어느 쪽도 동결/캐시 불가.**
+- 토큰 스케줄링·write 구조 개입 전멸 (chunk −1.27, sfm 대기). per-loop 조건화는 knob급(gates +0.04).
+- iso-compute 유일 경로: **pass를 균일하게 싸게** = width↔depth 교환. L2×6@d224 ≈ 1.00× (d² linear + d³ NS).
 | r5_loop_l2x4_gates_s95 | Déjà View gates | 1.00× | (진행중) | | | |
 | r5_loop_l2x4_rfb_s95 | render feedback (+delta+sup) | 1.03× | 22.002 | 0.2938 | −0.202 | **실패** — 자기 base(delta+sup 22.307)보다 −0.30 |
 | r5_loop_l2x4_gates_s95 | Déjà View gates | 1.00× | 22.244 | 0.2866 | +0.040 (t=7.6) | knob급 소폭 — Déjà View 스케일 전이 안 됨 |
 | r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write (muon→1) | ~1.00× | 20.939 | 0.3257 | **−1.265** | **대실패** — NVS엔 대청크가 옳음 (LaCT 선택 재확인) |
-| r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | (진행중) | | | |
+| r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | 20.239 | 0.3520 | **−1.965** | **최악 실패 — carry 계열 0/6 사망** |
+| r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | (진행중) | | | 프런티어 3점째 |
 | r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | (진행중) | | | |
 | r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | (진행중) | | | 곡선 중간점/실용 후보 |
 

@@ -1,0 +1,27 @@
+# Width-for-depth point 3: dim 208 buys 7 full joint loops at ~1.00x naive FLOPs.
+patch_size: 16
+dim: 208
+layers: 2
+n_loops: 7
+ttt_state_mode: reset
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 52
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 208
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: delta
+      n_loops_max: 7
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
