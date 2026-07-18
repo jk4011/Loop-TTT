@@ -109,8 +109,10 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write (muon→1) | ~1.00× | 20.939 | 0.3257 | **−1.265** | **대실패** — NVS엔 대청크가 옳음 (LaCT 선택 재확인) |
 | r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | 20.239 | 0.3520 | **−1.965** | **최악 실패 — carry 계열 0/6 사망** |
 | r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | (진행중) | | | 프런티어 3점째 |
-| r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | (진행중) | | | |
-| r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | (진행중) | | | 곡선 중간점/실용 후보 |
+| r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | **22.670** | **0.2711** | +0.466 | **delta는 6 loop에서 무기여** (delta판과 동일) — 레시피 미니멀화 가능 |
+| r6_loop_l2x8_d192_s95 | width↔depth: d192로 8 loop (delta 없이) | ~0.98× | (진행중) | | | 프런티어 깊은 끝 |
+| r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | **22.596** | **0.2771** | **+0.392 (t=29.7)** | ×6(1.5×, 22.648)를 거의 따라잡음 — 곡선 5에서 대부분 포화 |
+| r6_loop_l2x5_delta_d240_s95 | width↔depth: d240으로 5 loop | ~0.97× | (진행중) | | | 완만한 width 절감 × 5 loop |
 
 - **Test-time loop 외삽 실패** (기존 ckpt eval): L2×6 모델→4/8 loop = 20.4/18.3; L2×4→5/6 = 20.7/19.1.
   고정-L 훈련은 다른 L로 추론 불가 (Ouro와 일치). test-time scaling엔 stochastic-L 훈련 필요 — 보류.
