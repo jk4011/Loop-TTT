@@ -221,7 +221,7 @@ class LaCTLVSM(nn.Module):
             if pn.endswith("c_proj.weight"):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(len(block_config) * layers * n_loops))
     
-    def forward(self, input_data_dict, target_data_dict):
+    def forward(self, input_data_dict, target_data_dict, return_all_loops=False):
             # Do not autocast during the data processing
         with torch.autocast(device_type="cuda", enabled=False), torch.no_grad():
             batch_size, num_input_views, _, h, w = input_data_dict["image"].size()
@@ -275,6 +275,7 @@ class LaCTLVSM(nn.Module):
         x = self.input_layernorm(x)
         x0 = x if self.input_injection == "add" else None
         block_states = [{} for _ in self.blocks]
+        loop_renders = []
         for loop_idx in range(self.n_loops):
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
@@ -285,10 +286,18 @@ class LaCTLVSM(nn.Module):
                     block_states[block_idx] = {
                         key: result[key] for key in ("w0", "w1", "w2") if key in result
                     }
+            if return_all_loops and loop_idx < self.n_loops - 1:
+                loop_renders.append(self._decode_targets(
+                    x[:, -num_target_tokens:], num_target_views, h, w))
 
-        target_x = x[:, -num_target_tokens:]
+        final = self._decode_targets(x[:, -num_target_tokens:], num_target_views, h, w)
+        if return_all_loops:
+            return loop_renders + [final]
+        return final
+
+    def _decode_targets(self, target_x, num_target_views, h, w):
         target_x = self.image_token_decoder(target_x)
-        target_x = rearrange(
+        return rearrange(
             target_x,
             "b (v hh ww) (ph pw c) -> b v c (hh ph) (ww pw)",
             v=num_target_views,
@@ -298,7 +307,6 @@ class LaCTLVSM(nn.Module):
             pw=self.patch_size,
             c=3,
         )
-        return target_x
     
     def reconstruct(self, input_data_dict):
         with torch.autocast(device_type="cuda", enabled=False), torch.no_grad():

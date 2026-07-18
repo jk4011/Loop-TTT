@@ -1,7 +1,8 @@
 #!/bin/bash
-# Usage: chain_run.sh <gpu> <expname> <config> [seed]
+# Usage: chain_run.sh <gpu> <expname> <config> [seed] [extra train.py args...]
 # Full experiment: 30k-iter training (launch_exp.sh protocol) then standard eval
 # (256 held-out RE10K scenes, 8 input / 4 target views) -> outputs/<exp>/eval.json
+# NOTE: seed is required when passing extra args.
 set -u
 GPU=$1
 EXP=$2
@@ -11,7 +12,7 @@ SEED=${4:-95}
 cd "$(dirname "$0")"
 PY=/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin/python
 
-bash launch_exp.sh $GPU $EXP $CONFIG $SEED
+bash launch_exp.sh $GPU $EXP $CONFIG $SEED "${@:5}"
 
 CKPT=outputs/$EXP/model_0030000.pth
 if [ ! -f "$CKPT" ]; then

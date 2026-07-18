@@ -48,6 +48,11 @@ parser.add_argument("--warmup", type=int, default=4000)
 parser.add_argument("--steps", type=int, default=80000)
 parser.add_argument("--weight_decay", type=float, default=0.05)
 parser.add_argument("--lpips_start", type=int, default=5000, help="Iteration to start LPIPS loss")
+parser.add_argument("--loop_sup_weight", type=float, default=0.0,
+                    help="I6 per-loop render supervision: weight of the discounted "
+                         "MSE on intermediate loop renders (0 = off). LPIPS stays final-only.")
+parser.add_argument("--loop_sup_gamma", type=float, default=0.5,
+                    help="Discount per loop for intermediate render MSE (earlier loops weigh less)")
 parser.add_argument("--seed", type=int, default=95)
 
 args = parser.parse_args()
@@ -179,8 +184,19 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
 
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(dtype=torch.bfloat16, device_type="cuda", enabled=True):
-            rendering = model(input_data_dict, target_data_dict)
             target = target_data_dict["image"]
+            use_loop_sup = args.loop_sup_weight > 0
+            rendering = model(input_data_dict, target_data_dict, return_all_loops=use_loop_sup)
+            aux_loss = 0.0
+            if use_loop_sup:
+                renders = rendering
+                rendering = renders[-1]
+                # Discounted MSE on intermediate loop renders (final render excluded
+                # here; it gets the standard full loss below).
+                weights = [args.loop_sup_gamma ** (len(renders) - 1 - i) for i in range(len(renders) - 1)]
+                if weights:
+                    aux_loss = sum(wt * F.mse_loss(r, target) for wt, r in zip(weights, renders[:-1]))
+                    aux_loss = args.loop_sup_weight * aux_loss / sum(weights)
 
             l2_loss = F.mse_loss(rendering, target)
             psnr = -10.0 * torch.log10(l2_loss).item()
@@ -188,7 +204,7 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
                 lpips_loss = lpips_loss_module(rendering.flatten(0, 1), target.flatten(0, 1), normalize=True).mean()
             else:
                 lpips_loss = 0.0
-            loss = l2_loss + lpips_loss
+            loss = l2_loss + lpips_loss + aux_loss
         loss.backward()
 
         # Gradident safeguard
