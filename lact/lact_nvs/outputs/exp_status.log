@@ -1,0 +1,8 @@
+EXIT 0 r1_lact_l2_s95
+CHAIN_DONE r1_lact_l2_s95 PSNR: 19.719
+EXIT 0 r1_loop_l2x4_carry_s95
+CHAIN_DONE r1_loop_l2x4_carry_s95 PSNR: 21.751
+EXIT 0 r1_lact_l8_s95
+CHAIN_DONE r1_lact_l8_s95 PSNR: 21.955
+EXIT 0 r1_loop_l2x4_s95
+CHAIN_DONE r1_loop_l2x4_s95 PSNR: 22.204
