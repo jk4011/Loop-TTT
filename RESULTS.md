@@ -90,6 +90,23 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
   (input-only pass = 0.66×)하면 같은 비용으로 loop를 더 살 수 있음 = **late-join**.
 - L2×5-lj(target은 마지막 2 loop만) = input 깊이 10, 0.99× compute — wave 5 1순위.
 
+## Wave 5 (big-swing, 진행 중)
+
+| exp | 메커니즘 | compute | PSNR | LPIPS | vs naive(s95) | 판정 |
+|---|---|---|---|---|---|---|
+| r5_loop_l2x5_lj_delta_s95 | late-join (tgt 마지막 2 loop) | 0.99× | 20.540 | 0.3571 | **−1.664** | **대실패 — target 읽기 깊이가 핵심 변수** |
+| r5_loop_l2x6_rh_delta_s95 | read-heavy (input 2, tgt 6 loop) | ~1.00× | (진행중) | | | late-join의 역명제 검증 |
+| r5_loop_l2x4_gates_s95 | Déjà View gates | 1.00× | (진행중) | | | |
+| r5_loop_l2x4_rfb_s95 | render feedback (+delta+sup) | 1.03× | 22.002 | 0.2938 | −0.202 | **실패** — 자기 base(delta+sup 22.307)보다 −0.30 |
+| r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write | ~1.00× | (진행중) | | | |
+| r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | (진행중) | | | |
+
+- **Test-time loop 외삽 실패** (기존 ckpt eval): L2×6 모델→4/8 loop = 20.4/18.3; L2×4→5/6 = 20.7/19.1.
+  고정-L 훈련은 다른 L로 추론 불가 (Ouro와 일치). test-time scaling엔 stochastic-L 훈련 필요 — 보류.
+
+- late-join 실패의 함의: target 깊이 8→4에서 −1.66dB. **loop 이득의 상당 부분 = target-side 반복
+  read-out.** input-side 절감(F1)은 유효하되 target쪽을 깎으면 안 됨 → read-heavy가 정확한 역실험.
+
 ## 라운드 4 (진행 중)
 
 | exp | config | PSNR | LPIPS | paired Δ vs reset(s95) | 비고 |
