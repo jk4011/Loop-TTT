@@ -64,7 +64,12 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | exp | config | PSNR | LPIPS | 비고 |
 |---|---|---|---|---|
 | r3_loop_l2x4_carry_rho2_s95 | carry + I2' post-NS scaling | 21.789±0.146 | 0.3007 | **구제 실패** (+0.04 vs carry, 노이즈) — 스텝-크기 가설 최종 기각 |
-| r3_loop_l2x4_delta_s95 | reset + delta | **22.260±0.148** | **0.2876** | **신기록 — reset 대비 paired +0.056, t=6.98** (s96/s97 검증 중) |
+| r3_loop_l2x4_delta_s95 | reset + delta | 22.260±0.148 | 0.2876 | s95 paired +0.056 (t=7.0) |
+| r3_loop_l2x4_delta_s96 | reset + delta (s96) | 22.069±0.146 | 0.2888 | s96 paired −0.019 (t=−2.4). 교훈: within-seed paired t는 훈련-seed 분산을 못 잡음 |
+| r3_loop_l2x4_delta_s97 | reset + delta (s97) | 22.111±0.147 | 0.2904 | s97 paired +0.050 (t=7.4) |
+
+- **delta 3-seed 확정: paired Δ = +0.056/−0.019/+0.050 → 평균 +0.029dB** (3-seed 평균 22.147 vs reset 22.117).
+  방향은 양성(2/3 seed 유의)이나 단독 효과는 소폭. carry에서는 +0.23으로 더 컸음(병리 fix로서의 역할).
 | r3_loop_l1x8_s95 | 1블록×8loop (~2M) | 22.007±0.147 | 0.3016 | reset L2×4 대비 −0.20 — 극한 tying도 L8 s95급 |
 | r3_loop_l4x2_s95 | 4블록×2loop (~7M) | 22.077±0.147 | 0.2835 | PSNR은 L2×4 열세, LPIPS는 우세 |
 
@@ -73,6 +78,13 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
   → 지각 품질 갭은 고유 파라미터 부족 문제일 가능성; I6 supervision이 loop로 이를 메꿀 수 있는지 r4에서 확인.
 
 - rho/rho2/lrs 모두 무효, delta만 유효 → **carry 병리 = 중복 콘텐츠 재기록 (WHAT), 스텝 크기(HOW BIG) 아님.**
+
+## 라운드 4 (진행 중)
+
+| exp | config | PSNR | LPIPS | paired Δ vs reset(s95) | 비고 |
+|---|---|---|---|---|---|
+| r4_loop_l2x4_sup_s95 | reset + I6 per-loop supervision | 22.287±0.149 | 0.2885 | **+0.083 (t=7.9)** | 두 번째 유효 개선 (loss-side) |
+| r4_loop_l2x4_delta_sup_s95 | delta + sup 결합 | (진행중) | | | 두 승자 stack |
 
 ### 라운드 2 결론
 - **reset loop(22.204)가 챔피언 유지.** 시도한 4개 변형 모두 하회.
