@@ -415,11 +415,11 @@ class LaCTLVSM(nn.Module):
                 x, result = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
-                        key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2") if key in result
+                        key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2", "r") if key in result
                     }
                 if self.input_loops > 0 and loop_idx == self.input_loops - 1:
                     saved_states[block_idx] = {
-                        key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2") if key in result
+                        key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2", "r") if key in result
                     }
             if x_loop_start is not None:
                 x = x + self.loop_rho[loop_idx] * x_loop_start

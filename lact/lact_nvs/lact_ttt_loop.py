@@ -46,6 +46,8 @@ def _loop_fast_weight_apply(
     read_refine: float = 0.0,
     precond_w1: int = 0,
     precond_lambda: float = 0.1,
+    cumboost: bool = False,
+    r_in=None,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -65,6 +67,7 @@ def _loop_fast_weight_apply(
     w1_norm = w1.detach().norm(dim=1, keepdim=True)
     w2_norm = w2.detach().norm(dim=1, keepdim=True)
     boost = wp0 is not None
+    r_out = None
 
     output = []
     for start, end, update, apply in ttt_ua_order:
@@ -76,7 +79,12 @@ def _loop_fast_weight_apply(
             lr1i = lr1[:, start:end, :]
             lr2i = lr2[:, start:end, :]
 
-            if boost:
+            if cumboost and r_in is not None:
+                # Cumulative-residual boost: regress onto the running residual the
+                # ensemble-so-far left, carried in token space (proper stagewise
+                # gradient boosting; fixes boost's last-only double-counting).
+                vi = r_in
+            elif boost:
                 # Residual target: what the previous loop's memory could not explain.
                 pred_prev = (F.silu(ki @ wp0, inplace=False) * (ki @ wp2)) @ wp1
                 vi = vi - pred_prev
@@ -145,6 +153,12 @@ def _loop_fast_weight_apply(
                 w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
                 w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
 
+            if cumboost:
+                # New running residual: what THIS memory left unexplained (detached
+                # so it only sets the next loop's target, not a backprop path).
+                h_now = (F.silu(ki @ w0_now, inplace=False) * (ki @ w2_now)) @ w1_now
+                r_out = (vi - h_now).detach()
+
             w0, w1, w2 = w0_now, w1_now, w2_now
 
         if apply:
@@ -161,7 +175,7 @@ def _loop_fast_weight_apply(
 
     output = torch.cat(output, dim=1)
 
-    return output, w0, w1, w2
+    return output, w0, w1, w2, r_out
 
 
 @torch.compile
@@ -253,7 +267,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         self.precond_w1 = precond_w1    # Gauss-Newton/RLS Richardson iters on w1 (0 = off)
         self.precond_lambda = precond_lambda
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
-        known = {"lrs", "rho", "rho2", "delta", "boost"}
+        known = {"lrs", "rho", "rho2", "delta", "boost", "cumboost"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
         self.loop_flags = flags
         self.n_loops_max = n_loops_max
@@ -304,12 +318,13 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         )
 
         boost = "boost" in self.loop_flags
+        cumboost = "cumboost" in self.loop_flags
         wp0 = wp1 = wp2 = None
-        if boost:
-            # Boosting: always update from the fresh learned init; the carried
-            # weights (from the previous loop) are used only to form the residual
-            # target. They arrive under "w0"/"w1"/"w2" via the model's carry path.
-            if "w0" in info:
+        if boost or cumboost:
+            # Boosting: always update from the fresh learned init. boost carries the
+            # previous WEIGHTS (as residual-prediction source); cumboost carries the
+            # running RESIDUAL vector r (info["r"]) — fresh init either way.
+            if boost and "w0" in info:
                 wp0, wp1, wp2 = info["w0"], info["w1"], info["w2"]
             w0 = self.w0.repeat(x.shape[0], 1, 1)
             w1 = self.w1.repeat(x.shape[0], 1, 1)
@@ -343,7 +358,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             )
             state = {"m0": m0, "m1": m1, "m2": m2}
         else:
-            output, w0, w1, w2 = _loop_fast_weight_apply(
+            output, w0, w1, w2, r_out = _loop_fast_weight_apply(
                 w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
                 muon_update_steps=self.muon_update_steps,
                 update_epochs=self.update_epochs,
@@ -354,8 +369,12 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 rho_gate="rho" in self.loop_flags,
                 rho_post="rho2" in self.loop_flags,
                 delta="delta" in self.loop_flags,
+                cumboost=cumboost,
+                r_in=info.get("r", None) if cumboost else None,
             )
             state = {"w0": w0, "w1": w1, "w2": w2}
+            if cumboost and r_out is not None:
+                state["r"] = r_out
 
         output = self.o_norm(output)
         output = rearrange(
