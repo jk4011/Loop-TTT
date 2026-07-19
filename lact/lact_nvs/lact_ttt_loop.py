@@ -43,6 +43,7 @@ def _loop_fast_weight_apply(
     delta: bool = False,
     update_epochs: int = 1,
     wp0=None, wp1=None, wp2=None,
+    read_refine: float = 0.0,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -130,7 +131,14 @@ def _loop_fast_weight_apply(
 
         if apply:
             qi = q[:, start:end, :]
-            oi = (F.silu(qi @ w0_now, inplace=True) * (qi @ w2_now)) @ w1_now
+            oi = (F.silu(qi @ w0_now, inplace=False) * (qi @ w2_now)) @ w1_now
+            if read_refine != 0.0:
+                # Read-side refinement: re-query the same memory with a query nudged
+                # by its own first read (per-head, dims match), then renormalize.
+                # The untested APPLY axis; one extra SwiGLU on the read tokens.
+                qi2 = qi + read_refine * oi
+                qi2 = qi2 / (qi2.norm(dim=2, keepdim=True) + 1e-5)
+                oi = (F.silu(qi2 @ w0_now, inplace=False) * (qi2 @ w2_now)) @ w1_now
             output.append(oi)
 
     output = torch.cat(output, dim=1)
@@ -141,8 +149,9 @@ def _loop_fast_weight_apply(
 class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
-                 update_epochs=1, per_loop_init=False, **kwargs):
+                 update_epochs=1, per_loop_init=False, read_refine=0.0, **kwargs):
         super().__init__(*args, **kwargs)
+        self.read_refine = read_refine  # apply-side re-query strength (0 = off)
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
         known = {"lrs", "rho", "rho2", "delta", "boost"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
@@ -228,6 +237,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             muon_update_steps=self.muon_update_steps,
             update_epochs=self.update_epochs,
             wp0=wp0, wp1=wp1, wp2=wp2,
+            read_refine=self.read_refine,
             rho_gate="rho" in self.loop_flags,
             rho_post="rho2" in self.loop_flags,
             delta="delta" in self.loop_flags,

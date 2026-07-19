@@ -144,7 +144,7 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 |---|---|---|---|---|---|---|
 | r7_loop_l2x4_boost_s95 | **boosting (잔차 특화, 유효용량 ×n)** | **4.60 (동일!)** | **22.303** | 0.2869 | **+0.099** | **진짜 iso-compute 최고 메커니즘** — 죽었던 carry 계열 부활 |
 | r7_loop_l2x4_ep2_s95 | inner epochs=2 (underfit 공격) | 4.26 (−6%) | 22.281 | 0.2830 | +0.077 (t=6.3) | LPIPS −0.005 개선 (boost보다 큼) — underfit 실재 |
-| r8_loop_l2x4_ep3_s95 | inner epochs=3 | ~4.1 | (진행중) | | | epoch 스케일링 확인 |
+| r8_loop_l2x4_ep3_s95 | inner epochs=3 | 3.96 | 22.197 | 0.2834 | −0.007 | ep2보다 나쁨 — **fit축 sweet spot=ep2** (3스텝은 포화/overfit) |
 | r7_loop_l2x4_boost_sup_s95 | boost + sup | | (진행중) | | | |
 | r7_loop_l2x4_ep2_sup_s95 | **ep2 + sup (직교축)** | ~4.2 | **22.358** | **0.2829** | **+0.154** | **거의 완전 가산!** (0.077+0.083=0.160) — orthogonal 스택이 핵심 |
 | r8_loop_l2x4_boost_ep2_sup_s95 | boost+ep2+sup (총동원) | | (진행중) | | | 스택 상한 확인 |
