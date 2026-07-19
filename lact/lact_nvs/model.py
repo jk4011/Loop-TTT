@@ -214,7 +214,8 @@ class LaCTLVSM(nn.Module):
                  n_loops=1, ttt_state_mode="reset", input_injection="none",
                  loop_film=False, view_schedule="all", update_chunks=1,
                  render_feedback=False, target_loops=0, loop_gates=False,
-                 input_loops=0, feat_mom=False, geo_addr=False):
+                 input_loops=0, feat_mom=False, geo_addr=False,
+                 stream_norm=False, fused_readout=False, drop_loop=0.0):
         """
         Looped-TTT extension of LaCT LVSM.
 
@@ -290,6 +291,16 @@ class LaCTLVSM(nn.Module):
         # (the epipolar constraint), the axis that gave +1.7 dB in the attention
         # camera-conditioning prior. Injected zero-init in the TTT layer -> baseline.
         self.geo_addr = geo_addr
+        # StreamNorm: per-loop gated RMS re-normalization of the residual stream
+        # (counters residual saturation so each pass regains leverage). zero-init.
+        self.stream_norm = nn.Parameter(torch.zeros(n_loops, dim)) if stream_norm else None
+        # Fused-Readout: decode the target from a learned combination of all per-loop
+        # target features (output-composition axis). init so last loop dominates.
+        self.fused_readout = None
+        if fused_readout:
+            w = torch.full((n_loops,), -4.0); w[-1] = 4.0
+            self.fused_readout = nn.Parameter(w)
+        self.drop_loop = drop_loop  # train-time stochastic skip of a loop's contribution
 
         self.image_token_decoder = nn.Sequential(
             nn.LayerNorm(self.dim, bias=False),
@@ -423,6 +434,7 @@ class LaCTLVSM(nn.Module):
         block_states = [{} for _ in self.blocks]
         saved_states = [{} for _ in self.blocks]
         loop_renders = []
+        target_feats = []
         frozen_targets = None
         x_prev_loop = None
         for loop_idx in range(n_eff):
@@ -438,6 +450,9 @@ class LaCTLVSM(nn.Module):
                 x = x[:, num_input_tokens:]  # drop input tokens; memory is written
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
+            if self.stream_norm is not None and loop_idx > 0:
+                x_hat = x * x.float().pow(2).mean(-1, keepdim=True).add(1e-6).rsqrt().to(x.dtype)
+                x = x + self.stream_norm[loop_idx] * (x_hat - x)
             if self.feat_mom is not None:
                 # loop 0 references feat_mom[0] as a no-op (x_prev=x) so every row
                 # enters the autograd graph (DDP requires all params used).
@@ -445,6 +460,7 @@ class LaCTLVSM(nn.Module):
                 x = x + self.feat_mom[loop_idx] * delta
                 x_prev_loop = x
             x_loop_start = x if self.loop_rho is not None else None
+            x_pre_drop = x if (self.training and self.drop_loop > 0) else None
             for block_idx, block in enumerate(self.blocks):
                 extra_state = saved_states[block_idx] if read_phase else block_states[block_idx]
                 block_info = {**info, "loop_idx": loop_idx,
@@ -461,6 +477,12 @@ class LaCTLVSM(nn.Module):
                     }
             if x_loop_start is not None:
                 x = x + self.loop_rho[loop_idx] * x_loop_start
+            if x_pre_drop is not None and 0 < loop_idx < n_eff - 1:
+                # inverted stochastic depth: skip this interior loop's net contribution
+                keep = (torch.rand(x.shape[0], 1, 1, device=x.device) > self.drop_loop).to(x.dtype)
+                x = x_pre_drop + keep / (1 - self.drop_loop) * (x - x_pre_drop)
+            if self.fused_readout is not None:
+                target_feats.append(x[:, -num_target_tokens:])
             if loop_idx < n_eff - 1 and frozen_targets is None and (return_all_loops or self.render_feedback):
                 render_l = self._decode_targets(
                     x[:, -num_target_tokens:], num_target_views, h, w)
@@ -478,7 +500,12 @@ class LaCTLVSM(nn.Module):
                         x[:, -num_target_tokens:] + torch.tanh(self.fb_gate) * fb,
                     ], dim=1)
 
-        final = self._decode_targets(x[:, -num_target_tokens:], num_target_views, h, w)
+        if self.fused_readout is not None and len(target_feats) == n_eff:
+            mix = torch.softmax(self.fused_readout[:n_eff], dim=0)
+            fused = sum(ml * f for ml, f in zip(mix, target_feats))
+            final = self._decode_targets(fused, num_target_views, h, w)
+        else:
+            final = self._decode_targets(x[:, -num_target_tokens:], num_target_views, h, w)
         if return_all_loops:
             return loop_renders + [final]
         return final

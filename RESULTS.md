@@ -233,3 +233,17 @@ cumboost −1.52, epavg −0.01, c2f_muon −0.15). → **확정 단순 축(ep2/
   innovation(v − f_w(k))으로 바꾼 delta만 +0.23dB 부분 구제. → "TTT loop에서 상태를 살리려면
   메모리가 이미 아는 것을 다시 쓰면 안 된다"는 mechanism-level 발견.
 - Huginn식 input injection 무효 → TTT loop의 안정화 요구는 attention loop와 다름 (차별점 근거).
+
+## Round-2 결과 (task-agnostic, 대부분 실패)
+| exp | 메커니즘 | vs naive(s95) | 판정 |
+|---|---|---|---|
+| attngate | LT2 SDPA gate | -0.025 | 중립 (최강증거인데도) |
+| qkvroute | per-loop LoRA (transform) | -0.097 | 실패 (이론: 입력측 선형=중립, 확인) |
+| rotbag | per-loop 회전 (diversity) | -0.223 | 실패 (이론: 입력측 회전 재흡수, 확인) |
+| nlcond | SwiGLU preact bias (이론#1) | -0.059 | 실패 (이론-정합도 안 됨) |
+| distill | deep-teacher (teacher 8loop) | **-0.719** | 실패 - teacher가 깊은 unroll에서 붕괴(bad target) |
+| stochdepth | loop수 {2..6} 샘플 훈련 | **-0.376** | 실패 - 다깊이 공유훈련이 각 깊이 희석; 깊은 unroll도 안 좋아짐 |
+
+### ★ 중대 부정 발견: "more-loops +0.44~0.58"은 추론비용에 묶여 있어 iso-inference로 못 가져온다.
+distill(bad teacher)/stochdepth(희석) 둘 다 사망. 깊이별 dedicated 모델에서만 이득. 확정 최고 iso = ep2+sup+gates +0.283.
+실행중(마지막 미시도 직교축): streamnorm, fusedreadout, droploop.

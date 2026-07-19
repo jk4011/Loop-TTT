@@ -144,3 +144,5 @@ EXIT 0 r13_loop_l2x4_nlcond_s95
 CHAIN_DONE r13_loop_l2x4_nlcond_s95 PSNR: 22.145
 EXIT 0 r14_loop_l2x4_distill_s95
 CHAIN_DONE r14_loop_l2x4_distill_s95 PSNR: 21.485
+EXIT 0 r14_loop_l2x4_stochdepth_s95
+CHAIN_DONE r14_loop_l2x4_stochdepth_s95 PSNR: 21.828
