@@ -143,7 +143,8 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | exp | 메커니즘 | it/s (vs naive 4.55) | PSNR | LPIPS | vs naive(s95) | 판정 |
 |---|---|---|---|---|---|---|
 | r7_loop_l2x4_boost_s95 | **boosting (잔차 특화, 유효용량 ×n)** | **4.60 (동일!)** | **22.303** | 0.2869 | **+0.099** | **진짜 iso-compute 최고 메커니즘** — 죽었던 carry 계열 부활 |
-| r7_loop_l2x4_ep2_s95 | inner epochs=2 (underfit 공격) | ~4.3 | (진행중) | | | |
+| r7_loop_l2x4_ep2_s95 | inner epochs=2 (underfit 공격) | 4.26 (−6%) | 22.281 | 0.2830 | +0.077 (t=6.3) | LPIPS −0.005 개선 (boost보다 큼) — underfit 실재 |
+| r8_loop_l2x4_ep3_s95 | inner epochs=3 | ~4.1 | (진행중) | | | epoch 스케일링 확인 |
 | r7_loop_l2x4_boost_sup_s95 | boost + sup | | (진행중) | | | |
 | r7_loop_l2x4_ep2_sup_s95 | ep2 + sup | | (진행중) | | | |
 | r8_loop_l2x4_boost_ep2_s95 | boost + ep2 (용량×fit) | | (진행중) | | | 두 물리 메커니즘 직교 스택 |
