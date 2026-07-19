@@ -1,80 +1,3 @@
-DistributedDataParallel(
-  (module): LaCTLVSM(
-    (input_linear): Linear(in_features=3072, out_features=256, bias=False)
-    (input_layernorm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
-    (blocks): ModuleList(
-      (0-1): 2 x CheckpointWrapper(
-        (_checkpoint_wrapped_module): Block(
-          (module_list): ModuleList(
-            (0): ModuleDict(
-              (ln): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
-              (f): SelfAttention(
-                (to_qkv): Linear(in_features=256, out_features=768, bias=False)
-                (c_proj): Linear(in_features=256, out_features=256, bias=False)
-                (q_norm): RMSNorm((64,), eps=None, elementwise_affine=True)
-                (k_norm): RMSNorm((64,), eps=None, elementwise_affine=True)
-              )
-            )
-            (1): ModuleDict(
-              (ln): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
-              (f): LoopFastWeightGluMLPMultihead(
-                w0 shape: torch.Size([1, 256, 512]), w1 shape: torch.Size([1, 512, 256]), w2 shape: torch.Size([1, 256, 512]), Muon update steps: 5, Base lr: 0.009999999999999893, loop_mode: [], 
-                (to_qkv): Linear(in_features=256, out_features=768, bias=False)
-                (c_proj): Linear(in_features=256, out_features=256, bias=False)
-                (lr_fc): Linear(in_features=256, out_features=3, bias=True)
-                (o_norm): RMSNorm((256,), eps=1e-05, elementwise_affine=True)
-              )
-            )
-            (2): ModuleDict(
-              (ln): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
-              (f): MLP(
-                (c_fc): Linear(in_features=256, out_features=1024, bias=False)
-                (gelu): GELU(approximate='none')
-                (c_proj): Linear(in_features=1024, out_features=256, bias=False)
-              )
-            )
-          )
-        )
-      )
-    )
-    (image_token_decoder): Sequential(
-      (0): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
-      (1): Linear(in_features=256, out_features=768, bias=False)
-      (2): Sigmoid()
-    )
-  )
-)
-AdamW (
-Parameter Group 0
-    amsgrad: False
-    betas: (0.9, 0.95)
-    capturable: False
-    decoupled_weight_decay: True
-    differentiable: False
-    eps: 1e-08
-    foreach: None
-    fused: True
-    initial_lr: 0.0001
-    lr: 0.0
-    maximize: False
-    weight_decay: 0.05
-
-Parameter Group 1
-    amsgrad: False
-    betas: (0.9, 0.95)
-    capturable: False
-    decoupled_weight_decay: True
-    differentiable: False
-    eps: 1e-08
-    foreach: None
-    fused: True
-    initial_lr: 0.0001
-    lr: 0.0
-    maximize: False
-    weight_decay: 0.0
-)
-<torch.optim.lr_scheduler.LambdaLR object at 0x7d00cecaec60>
-Start training from iter 0...
 Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
 /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/lib/python3.12/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
   warnings.warn(
@@ -97,5 +20,23 @@ The default value of dim will change to agree with that of linalg.cross in a fut
 Please either pass the dim explicitly or simply use torch.linalg.cross.
 The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at /pytorch/aten/src/ATen/native/Cross.cpp:63.)
   vec0 = normalize(torch.cross(up, vec2))
+/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/loop_TTT/lact/lact_nvs/data.py:71: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at /pytorch/aten/src/ATen/native/Cross.cpp:63.)
+  vec0 = normalize(torch.cross(up, vec2))
+/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/loop_TTT/lact/lact_nvs/data.py:71: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at /pytorch/aten/src/ATen/native/Cross.cpp:63.)
+  vec0 = normalize(torch.cross(up, vec2))
+/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/loop_TTT/lact/lact_nvs/data.py:71: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at /pytorch/aten/src/ATen/native/Cross.cpp:63.)
+  vec0 = normalize(torch.cross(up, vec2))
+/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/loop_TTT/lact/lact_nvs/data.py:71: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at /pytorch/aten/src/ATen/native/Cross.cpp:63.)
+  vec0 = normalize(torch.cross(up, vec2))
 /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/lib/python3.12/site-packages/torch/nn/functional.py:2954: UserWarning: Mismatch dtype between input and weight: input dtype = c10::BFloat16, weight dtype = float, Cannot dispatch to fused implementation. (Triggered internally at /pytorch/aten/src/ATen/native/layer_norm.cpp:344.)
   return torch.rms_norm(input, normalized_shape, weight, eps)
+PSNR: 22.059 +- 0.148  LPIPS: 0.2928  (256 scenes)
+saved -> outputs/r11_loop_l2x4_c2fmuon_s95/eval.json

@@ -167,7 +167,11 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r11_loop_l2x4_cumboost_s95 | cumulative-residual boost | agents 9,5,2,6 | 20.686 | 0.3675 | **−1.518** | **참사** — 잔차 r이 stale(v-space가 loop마다 drift). boost가 현재 key로 재평가하는 게 우월 |
 | r11_loop_l2x4_ltemp_s95 | per-loop q/k temperature | agents 5,8 | (진행중) | | | bandwidth 축 |
 | r11_loop_l2x4_fmom_s95 | feature Anderson/Nesterov | agents 4,6,7 | 19.719 | 0.3860 | **−2.485** | **붕괴(L2와 동일해로 수렴)** — 외삽이 loop 기여 무효화 |
-| r11_loop_l2x4_c2fmuon_s95 | spectral coarse-to-fine NS steps | agents 8,10 | (진행중) | | | update-spectrum 축 |
+| r11_loop_l2x4_c2fmuon_s95 | spectral coarse-to-fine NS steps | agents 8,10 | 22.059 | 0.2928 | **−0.145** | 실패 — 초기 NS 스텝 축소 해로움 (muon2와 일치) |
+
+**Wave 10 중간 판정: 정교한 flagship 6연속 실패/중립** (momentum −0.18, feat_mom −2.49, pw1 −0.03,
+cumboost −1.52, epavg −0.01, c2f_muon −0.15). → **확정 단순 축(ep2/sup/gates/boost)이 매우 강건.**
+확정 최고 iso 스택 = **ep2+sup+gates: s95 +0.187, s96 +0.156** (3-seed 진행). 남은: pw1diag, key_center, ltemp.
 
 **교훈: momentum·feat_mom 둘 다 실패 → loop는 가속/외삽이 아니라 실제 반복을 원한다.**
 | r11_loop_l2x4_epavg_s95 | Polyak iterate averaging | agents 1,2,7 | 22.192 | 0.2871 | **−0.012** | 중립 — ep3 궤도 구제 실패 |
