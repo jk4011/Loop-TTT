@@ -1,27 +1,26 @@
-# Stack: d240x5 (best iso point) + Deja View/LT2 loop gates (0 FLOPs).
+# What-to-sacrifice panel: keep d256 width and TTT capacity, cut NS iterations (5->2) to fund loop 5. ~1.15x.
+dim: 256
 patch_size: 16
-dim: 240
 layers: 2
 n_loops: 5
 ttt_state_mode: reset
 input_injection: none
-loop_gates: true
 
 block_config:
   - type: model.SelfAttention
     length_dim: l
     params:
-      head_dim: 60
+      head_dim: 64
       use_qk_norm: true
   - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
     length_dim: vl
     params:
-      head_dim: 240
+      head_dim: 256
       inter_multi: 2
       base_lr: 0.01
-      muon_update_steps: 5
+      muon_update_steps: 2
       loop_mode: delta
-      n_loops_max: 5
+      n_loops_max: 4
   - type: model.MLP
     length_dim: vl
     params:

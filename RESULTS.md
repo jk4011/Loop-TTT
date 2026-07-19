@@ -111,7 +111,8 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | 20.239 | 0.3520 | **−1.965** | **최악 실패 — carry 계열 0/6 사망** |
 | r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | 22.269 | 0.2903 | +0.065 (t=6.8) | 균일 절감 프런티어는 좁을수록 하락 (d224×6보다 나쁨) |
 | r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | **22.670** | **0.2711** | +0.466 | **delta는 6 loop에서 무기여** (delta판과 동일) — 레시피 미니멀화 가능 |
-| r6_loop_l2x8_d192_s95 | width↔depth: d192로 8 loop (delta 없이) | ~0.98× | (진행중) | | | 프런티어 깊은 끝 |
+| r6_loop_l2x8_d192_s95 | width↔depth: d192로 8 loop | ~0.98× | 22.164 | 0.2954 | −0.040 | 깊은-좁은 끝은 음수 — **프런티어 = 역U자, 정점 d240×5/d224×6 (+0.13)** |
+| r7_loop_l2x5_muon2_s95 | d256 유지, muon 5→2로 5 loop | ~1.15× | (진행중) | | | 희생-대상 패널 3축: NS 반복 |
 | r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | **22.596** | **0.2771** | **+0.392 (t=29.7)** | ×6(1.5×, 22.648)를 거의 따라잡음 — 곡선 5에서 대부분 포화 |
 | r6_loop_l2x5_delta_d240_s95 | width↔depth: d240으로 5 loop | ~0.97× | 22.338 | 0.2863 | +0.134 (t=12.6) | 균일-절감 프런티어 정점 (~+0.13에서 평탄) |
 | r7_loop_l2x5_d240_gates_s95 | d240×5 + gates 스택 | ~0.97× | (진행중) | | | |
