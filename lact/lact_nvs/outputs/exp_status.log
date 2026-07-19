@@ -128,3 +128,5 @@ EXIT 0 r11_loop_l2x4_ltemp_s95
 CHAIN_DONE r11_loop_l2x4_ltemp_s95 PSNR: 22.193
 EXIT 0 r11_loop_l2x4_pw1diag_s95
 CHAIN_DONE r11_loop_l2x4_pw1diag_s95 PSNR: 22.214
+EXIT 0 r12_loop_l2x4_ep2_gates_sup_s97
+CHAIN_DONE r12_loop_l2x4_ep2_gates_sup_s97 PSNR: 22.450

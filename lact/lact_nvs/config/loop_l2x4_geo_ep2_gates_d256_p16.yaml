@@ -1,0 +1,35 @@
+# Full stack: geometry addressing + ep2(fit) + gates(cond) + sup(loss at launch).
+#   ep2   = inner update epochs (fit/write axis, +0.077)
+#   gates = Deja View branch/state + LT2 rho per-loop gates (conditioning axis, +0.04)
+#   sup   = per-loop render supervision (loss axis, +0.073; train flag)
+# Three distinct axes -> test additivity toward the ep2+sup +0.154 base.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: none
+loop_gates: true
+geo_addr: true
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      update_epochs: 2
+      geo_addr: true
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4

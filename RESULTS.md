@@ -158,6 +158,19 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
   만들고, 각자 이전 loop의 잔차만 담당 → 동일 arch·동일 속도로 +0.10. delta/gates(+0.03~0.04)의
   2~3배이며 **속도 페널티 0**. attention loop엔 없는 성질을 직접 활용.
 
+## ★ 확정 최고 iso-compute 결과 (2026-07-20)
+
+**ep2+sup+gates 3-seed (seed-matched paired vs naive loop):**
+| seed | PSNR | LPIPS | paired ΔPSNR | t |
+|---|---|---|---|---|
+| 95 | 22.390 | 0.2809 | +0.187 | 14.7 |
+| 96 | 22.360 | 0.2840 | +0.272 | 26.3 |
+| 97 | 22.450 | 0.2825 | +0.390 | 36.0 |
+| **평균** | **22.400** | **0.2825** | **+0.283** | — |
+
+→ **naive loop 대비 +0.283 dB (3-seed 확정), LPIPS −0.007, 파라미터 동일, wall-clock +6%.**
+목표 +0.5의 57%. geometry가 직교 positive면 +0.5 도달 가능 → 전체 스택(geo+ep2+gates+sup) 실행 중.
+
 ## Wave 10+ — 100-아이디어 flagship (iso-compute, IDEAS_100.md / experiment_queue TIER1-3)
 
 | exp | 메커니즘 | 근거 | PSNR | LPIPS | vs naive(s95) | 판정 |
