@@ -1,0 +1,35 @@
+# TTT-loop physics: cross-loop BOOSTING. Each loop's memory inits fresh (reset,
+# no carry re-write pathology) but its regression target is the residual the
+# PREVIOUS loop's converged memory could not explain: v - f_{W_{l-1}}(k). The n
+# memory instances the loop manufactures through time thus specialize on disjoint
+# residual layers -> effective fast-weight capacity x n_loops (attacks the binding
+# capacity limit at 0 params / same architecture). carry threads W_{l-1}; the boost
+# flag makes the layer update from init while subtracting the carried prediction.
+# +1 SwiGLU forward on the update chunk -> ~1.06x FLOPs.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: carry
+input_injection: none
+loop_gates: true
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: boost
+      n_loops_max: 4
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
