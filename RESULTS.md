@@ -109,11 +109,12 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | r5_loop_l2x4_gates_s95 | Déjà View gates | 1.00× | 22.244 | 0.2866 | +0.040 (t=7.6) | knob급 소폭 — Déjà View 스케일 전이 안 됨 |
 | r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write (muon→1) | ~1.00× | 20.939 | 0.3257 | **−1.265** | **대실패** — NVS엔 대청크가 옳음 (LaCT 선택 재확인) |
 | r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | 20.239 | 0.3520 | **−1.965** | **최악 실패 — carry 계열 0/6 사망** |
-| r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | (진행중) | | | 프런티어 3점째 |
+| r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | 22.269 | 0.2903 | +0.065 (t=6.8) | 균일 절감 프런티어는 좁을수록 하락 (d224×6보다 나쁨) |
 | r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | **22.670** | **0.2711** | +0.466 | **delta는 6 loop에서 무기여** (delta판과 동일) — 레시피 미니멀화 가능 |
 | r6_loop_l2x8_d192_s95 | width↔depth: d192로 8 loop (delta 없이) | ~0.98× | (진행중) | | | 프런티어 깊은 끝 |
 | r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | **22.596** | **0.2771** | **+0.392 (t=29.7)** | ×6(1.5×, 22.648)를 거의 따라잡음 — 곡선 5에서 대부분 포화 |
-| r6_loop_l2x5_delta_d240_s95 | width↔depth: d240으로 5 loop | ~0.97× | (진행중) | | | 완만한 width 절감 × 5 loop |
+| r6_loop_l2x5_delta_d240_s95 | width↔depth: d240으로 5 loop | ~0.97× | 22.338 | 0.2863 | +0.134 (t=12.6) | 균일-절감 프런티어 정점 (~+0.13에서 평탄) |
+| r7_loop_l2x5_d240_gates_s95 | d240×5 + gates 스택 | ~0.97× | (진행중) | | | |
 
 - **Test-time loop 외삽 실패** (기존 ckpt eval): L2×6 모델→4/8 loop = 20.4/18.3; L2×4→5/6 = 20.7/19.1.
   고정-L 훈련은 다른 L로 추론 불가 (Ouro와 일치). test-time scaling엔 stochastic-L 훈련 필요 — 보류.

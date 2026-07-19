@@ -62,3 +62,7 @@ EXIT 0 r5_loop_l2x6_s95
 CHAIN_DONE r5_loop_l2x6_s95 PSNR: 22.670
 EXIT 0 r6_loop_l2x6_delta_d224_s95
 CHAIN_DONE r6_loop_l2x6_delta_d224_s95 PSNR: 22.335
+EXIT 0 r6_loop_l2x7_delta_d208_s95
+CHAIN_DONE r6_loop_l2x7_delta_d208_s95 PSNR: 22.269
+EXIT 0 r6_loop_l2x5_delta_d240_s95
+CHAIN_DONE r6_loop_l2x5_delta_d240_s95 PSNR: 22.338
