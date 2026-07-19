@@ -15,6 +15,16 @@
 | 2 | r1_lact_l8_s97 | L8 seed 97 |
 | 3 | r1_loop_l2x4_s97 | reset loop seed 97 |
 
+## WAVE R2 — 라운드-2 100아이디어 (task-agnostic, IDEAS_R2.md) 선별 큐
+
+geometry 제외(task-specific). 통합이론(agent 9): 이득은 비선형/출력측/cross-pass 다양성에서만.
+- 실행중(WAVE-A): Attn-OutGate(g0,LT2 +1.43), QKV-Route(g2,transform), RotBag(g3,diversity/이론test).
+- WAVE-B: NL-Cond(SwiGLU preact bias, 이론#1), StochDepth(loop수 샘플링, 5-6에이전트 수렴),
+  distill(deep-teacher, +0.44 iso-inference), hep(ep2 innovation 2nd step, ~free upgrade).
+- WAVE-C: StreamNorm/CoreNorm(RMSNorm@depth), Fused-Readout/lob(output composition), DropLoop,
+  ConcatInject(Huginn concat), phalt(per-token halting), SCW(target self-write).
+양성이면 ep2+sup+gates(+0.283)에 스택 → 3-seed.
+
 ## WAVE 10 — 100-아이디어(10 subagent) 선별 큐 (상세: IDEAS_100.md)
 
 선별 기준: 다수 에이전트 수렴 + 직교축(stacking law) + 미니멀·0~tiny param·zero-init + ≤1.1× + 실패군 무관.

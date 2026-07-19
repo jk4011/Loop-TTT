@@ -281,9 +281,29 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
                  momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False,
                  muon_schedule=None, key_center=0.0, loop_temp=False,
-                 geo_addr=False, **kwargs):
+                 geo_addr=False, qkv_route=0, rot_bag=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.epavg = epavg
+        # RotBag: fixed per-loop random orthogonal rotation of q,k (same R for both,
+        # v unrotated). Each loop fits+reads its fresh memory in a different frame;
+        # silu is not rotation-equivariant so each pass computes a decorrelated
+        # function -> ensemble/bagging diversity. 0 trainable params, norm-preserving.
+        self.rot_bag = rot_bag
+        if rot_bag:
+            d = self.w0.shape[1]
+            gcpu = torch.Generator().manual_seed(1234)
+            R = torch.stack([torch.linalg.qr(torch.randn(d, d, generator=gcpu))[0]
+                             for _ in range(n_loops_max)])
+            self.register_buffer("loop_rot", R)
+        # QKV-Route: per-loop low-rank (LoRA) adapter on to_qkv, so each loop pass
+        # addresses the fast-weight memory through a slightly different q/k/v map.
+        # Keeps the shared meta-learned to_qkv (unlike pli); B zero-init -> baseline.
+        # New transform/addressing axis, orthogonal to gates (diagonal conditioning).
+        self.qkv_route = qkv_route
+        if qkv_route > 0:
+            self.qkv_a = nn.Parameter(torch.zeros(n_loops_max, self.dim, qkv_route))
+            self.qkv_b = nn.Parameter(torch.zeros(n_loops_max, qkv_route, 3 * self.dim))
+            nn.init.normal_(self.qkv_a, std=0.02)  # A random, B zero -> product zero
         # geo_addr: condition the fast-weight q/k on per-patch Plücker geometry
         # (ray dir + moment, 6-d). Reciprocal-product structure: q gets [m; d],
         # k gets [d; m] (swapped) so q·k contains the epipolar term d_t·m_i + m_t·d_i.
@@ -342,13 +362,22 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             self.w2_loop = nn.Parameter(torch.randn(extra, nh, d_in, d_h) * g / math.sqrt(d_in))
 
     def forward(self, x: torch.Tensor, info={}, *args):
-        qkv = F.silu(self.to_qkv(x), inplace=True)
+        qkv_pre = self.to_qkv(x)
+        if self.qkv_route > 0:
+            li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
+            qkv_pre = qkv_pre + (x @ self.qkv_a[li]) @ self.qkv_b[li]
+        qkv = F.silu(qkv_pre, inplace=True)
         q, k, v = rearrange(
             qkv, "b l (qkv h d) -> qkv (b h) l d",
             qkv=3, h=self.num_heads
         )
         q = q / (q.norm(dim=2, keepdim=True) + 1e-5).to(x.dtype)
         k = k / (k.norm(dim=2, keepdim=True) + 1e-5).to(x.dtype)
+
+        if self.rot_bag:
+            Rl = self.loop_rot[min(info.get("loop_idx", 0), self.n_loops_max - 1)].to(q.dtype)
+            q = q @ Rl
+            k = k @ Rl
 
         if self.key_center > 0.0:
             # DC decorrelation: remove the common-mode of the keys so patches that

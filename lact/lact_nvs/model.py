@@ -43,11 +43,13 @@ class SelfAttention(nn.Module):
         use_qk_norm=True,
         causal=False,
         bias=False,
+        out_gate=False,
     ):
         super().__init__()
         assert dim % head_dim == 0
         self.dim = dim
         self.head_dim = head_dim
+        self.num_heads = dim // head_dim
 
         self.to_qkv = nn.Linear(dim, 3 * dim, bias=bias)
         self.c_proj = nn.Linear(dim, dim, bias=bias)
@@ -58,6 +60,14 @@ class SelfAttention(nn.Module):
             self.k_norm = nn.RMSNorm(head_dim)
 
         self.causal = causal
+        # LT2 SDPA output gate: per-head data-dependent sigmoid gate on the
+        # attention output (fixes attention-sink / residual-RMS blowup that
+        # compounds when the tied attention runs every loop pass). zero-init ->
+        # 2*sigmoid(0)=1 -> exact identity at start.
+        self.out_gate = nn.Linear(dim, self.num_heads, bias=True) if out_gate else None
+        if out_gate:
+            nn.init.zeros_(self.out_gate.weight)
+            nn.init.zeros_(self.out_gate.bias)
 
     def forward(self, x, *args):
         """
@@ -69,11 +79,14 @@ class SelfAttention(nn.Module):
             q = self.q_norm(q)
             k = self.k_norm(k)
 
-        x = F.scaled_dot_product_attention(q, k, v, is_causal=self.causal)
-        x = rearrange(x, "b nh l dh -> b l (nh dh)")
+        out = F.scaled_dot_product_attention(q, k, v, is_causal=self.causal)
+        if self.out_gate is not None:
+            g = 2.0 * torch.sigmoid(self.out_gate(x))            # [b, l, nh]
+            out = out * g.transpose(1, 2).unsqueeze(-1)          # per-head scale
+        out = rearrange(out, "b nh l dh -> b l (nh dh)")
 
-        x = self.c_proj(x)
-        return x, {}
+        out = self.c_proj(out)
+        return out, {}
 
 
 class MLP(nn.Module):
@@ -324,7 +337,8 @@ class LaCTLVSM(nn.Module):
             update_ops = [TTTOperator(start=0, end=num_input_tokens, update=True, apply=False)]
         return update_ops + [TTTOperator(start=0, end=apply_end, update=False, apply=True)]
 
-    def forward(self, input_data_dict, target_data_dict, return_all_loops=False):
+    def forward(self, input_data_dict, target_data_dict, return_all_loops=False,
+                n_loops_override=None):
             # Do not autocast during the data processing
         with torch.autocast(device_type="cuda", enabled=False), torch.no_grad():
             batch_size, num_input_views, _, h, w = input_data_dict["image"].size()

@@ -87,3 +87,57 @@ So the path to +0.5 is **finding many orthogonal positive axes**, each minimal.
   0 or tiny params preferred; must degrade to baseline via zero-init so it never hurts.
 - Must be implementable as a small diff in `lact_ttt_loop.py` / `model.py` (see kernel above).
 - Judge every result 3-seed paired (single-seed <0.15 dB is noise).
+
+---
+
+# ADDENDUM (2026-07-20): Wave-10 results + HARD task-agnostic constraint
+
+## NEW HARD CONSTRAINT: the method must be TASK-AGNOSTIC.
+The mechanism must extend beyond NVS to LLM / video / any sequence task. **Do NOT
+propose anything that uses camera pose, Plücker/epipolar geometry, multi-view 3D
+structure, rays, depth, or image-specific priors.** (A camera-geometry addressing
+idea worked in a sibling project but is REJECTED here for this reason.) The fast
+weights, the loop, the update/apply, per-token features — those are the substrate;
+your mechanism must only touch those, not the task semantics.
+
+## Wave-10 (100-idea round 1) RESULTS — the optimization family is DEAD
+All measured s95 paired vs naive loop 22.204; most also confirmed neutral by design.
+- **Acceleration/extrapolation FAILS hard.** cross-loop weight momentum (heavy-ball) −0.18;
+  feature-space Anderson/Nesterov extrapolation (x += β(x−x_prev)) −2.49 (collapsed to a
+  shallow L2-equivalent). LESSON: **the loop needs GENUINE iterations, not extrapolation to
+  a fixed point.** The refinement IS the computation.
+- **Exact/preconditioned inner optimization is NEUTRAL.** Gauss-Newton/RLS readout on w1
+  via Richardson (−0.03) AND a definitely-non-identity diagonal preconditioner (+0.01).
+  DECISIVE: conditioning the fast-weight update DIRECTION does not improve PSNR →
+  **fit-quality of the memory is NOT the bottleneck** (contradicts the "underfit" intuition;
+  the memory underfits but that underfit is not what caps quality).
+- **Cumulative/true-gradient boosting FAILS (−1.52).** Carrying the residual vector in token
+  space is stale because the value target is recomputed each loop (moving target). boost
+  (+0.099) works precisely because it re-evaluates the previous memory on the CURRENT keys,
+  staying in the current representation. LESSON: cross-loop state must be re-expressed in the
+  current features, not carried as a frozen vector.
+- **Neutral/dead:** Polyak iterate averaging (−0.01), spectral coarse-to-fine NS-step schedule
+  (−0.15), key DC-decorrelation (+0.017), per-loop q/k temperature (−0.01), per-loop learned
+  init "pli" (−0.083), read-side refinement (0), input injection (slightly −), render feedback
+  (−0.20), all schedule surgery (late-join −1.66, chunked −1.27, sfm −1.97, read-heavy −0.92).
+
+## THE META-LESSON (build on this)
+Two clean categories emerged:
+- **WORKS** = cheap structure that makes each loop pass do DIFFERENT / genuinely-contributing
+  work, keeping real iterations: ep2 (2 real inner update steps, fit +0.077), sup (per-loop
+  deep supervision, loss +0.073), gates (per-loop channel conditioning, +0.033), boost
+  (each loop's fresh memory targets the previous memory's residual re-evaluated on current
+  keys, capacity +0.099). Orthogonal-axis STACK ep2+sup+gates = **+0.283 dB (3-seed paired)**,
+  same params, +6% wall-clock. This is the confirmed best.
+- **FAILS** = anything that tries to make the loop's OPTIMIZATION better (accelerate it,
+  precondition it, converge its orbit, average its iterates) or that freezes cross-loop state.
+
+So: the loop's value is **iterative feature refinement through genuine repeated computation**,
+NOT optimization quality. New ideas should add task-agnostic structure that makes passes
+contribute complementary work, or find genuinely new orthogonal axes — and must survive the
+"is this just an optimization tweak?" test (those are dead) and the "does this need task
+semantics?" test (those are rejected).
+
+## Confirmed task-agnostic winners to STACK onto (orthogonal axes add):
+fit (ep2) · loss (sup, = per-loop deep supervision) · conditioning (gates) · capacity (boost).
+Target: find 2-3 more orthogonal task-agnostic axes, each ~+0.05–0.1, to reach +0.5.
