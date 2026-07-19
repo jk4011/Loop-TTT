@@ -171,6 +171,17 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 → **naive loop 대비 +0.283 dB (3-seed 확정), LPIPS −0.007, 파라미터 동일, wall-clock +6%.**
 목표 +0.5의 57%. geometry가 직교 positive면 +0.5 도달 가능 → 전체 스택(geo+ep2+gates+sup) 실행 중.
 
+| r12_loop_l2x4_boost_gates_sup_s95 | boost+gates+sup (대안 스택) | 22.364 | 0.2871 | +0.160 | ep2+sup+gates(+0.187) 하회 — ep2 스택이 최고 |
+
+## Wave R2 — 라운드-2 task-agnostic 아이디어 (IDEAS_R2.md)
+
+| exp | 메커니즘 | 근거 | PSNR | LPIPS | vs naive(s95) | 판정 |
+|---|---|---|---|---|---|---|
+| r13_loop_l2x4_attngate_s95 | Attn-OutGate (LT2 SDPA) | agent6, 최강증거 | (진행중) | | | attn-branch 축 |
+| r13_loop_l2x4_qkvroute_s95 | QKV-Route (per-loop LoRA) | agent1 | (진행중) | | | transform 축 (이론상 중립위험) |
+| r13_loop_l2x4_rotbag_s95 | RotBag (per-loop 회전) | agent3 | (진행중) | | | diversity 축 (이론 test) |
+| r13_loop_l2x4_nlcond_s95 | NL-Cond (SwiGLU preact bias) | agent9 이론#1 | (진행중) | | | nonlinear-cond 축 |
+
 ## Wave 10+ — 100-아이디어 flagship (iso-compute, IDEAS_100.md / experiment_queue TIER1-3)
 
 | exp | 메커니즘 | 근거 | PSNR | LPIPS | vs naive(s95) | 판정 |

@@ -49,6 +49,7 @@ def _loop_fast_weight_apply(
     cumboost: bool = False,
     r_in=None,
     epavg: bool = False,
+    gate_bias=None,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -93,6 +94,8 @@ def _loop_fast_weight_apply(
             w1_acc = None  # epavg: running sum of w1 iterates (Polyak averaging)
             for _ in range(update_epochs):
                 gate_before_act = ki @ w0_now
+                if gate_bias is not None:
+                    gate_before_act = gate_before_act + gate_bias
                 hidden_before_mul = ki @ w2_now
                 hidden = F.silu(gate_before_act, inplace=False) * hidden_before_mul
 
@@ -182,7 +185,10 @@ def _loop_fast_weight_apply(
 
         if apply:
             qi = q[:, start:end, :]
-            oi = (F.silu(qi @ w0_now, inplace=False) * (qi @ w2_now)) @ w1_now
+            gate_q = qi @ w0_now
+            if gate_bias is not None:
+                gate_q = gate_q + gate_bias
+            oi = (F.silu(gate_q, inplace=False) * (qi @ w2_now)) @ w1_now
             if read_refine != 0.0:
                 # Read-side refinement: re-query the same memory with a query nudged
                 # by its own first read (per-head, dims match), then renormalize.
@@ -281,9 +287,18 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
                  momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False,
                  muon_schedule=None, key_center=0.0, loop_temp=False,
-                 geo_addr=False, qkv_route=0, rot_bag=False, **kwargs):
+                 geo_addr=False, qkv_route=0, rot_bag=False, nl_cond=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.epavg = epavg
+        # NL-Cond: per-loop additive bias on the SwiGLU gate preactivation
+        # (silu(k@w0 + b_l)). Changes each loop's NONLINEAR operating point ->
+        # each pass computes a genuinely different SwiGLU. Additive (not scale),
+        # so not erased by weight-norm/Muon; orthogonal to gates (linear channel
+        # scaling). zero-init -> baseline. head_dim==dim so d_h = inter_multi*dim.
+        self.nl_cond = nl_cond
+        if nl_cond:
+            d_h = self.w0.shape[2]
+            self.loop_gate_bias = nn.Parameter(torch.zeros(n_loops_max, d_h))
         # RotBag: fixed per-loop random orthogonal rotation of q,k (same R for both,
         # v unrotated). Each loop fits+reads its fresh memory in a different frame;
         # silu is not rotation-equivariant so each pass computes a decorrelated
@@ -475,6 +490,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 cumboost=cumboost,
                 r_in=info.get("r", None) if cumboost else None,
                 epavg=self.epavg,
+                gate_bias=(self.loop_gate_bias[min(info.get("loop_idx", 0), self.n_loops_max - 1)]
+                           if self.nl_cond else None),
             )
             state = {"w0": w0, "w1": w1, "w2": w2}
             if cumboost and r_out is not None:

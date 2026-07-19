@@ -1,0 +1,28 @@
+# NL-Cond: per-loop additive bias on SwiGLU gate preact (theory #1, nonlinear-cond axis).
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      nl_cond: true
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4

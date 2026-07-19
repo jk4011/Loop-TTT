@@ -132,3 +132,5 @@ EXIT 0 r12_loop_l2x4_ep2_gates_sup_s97
 CHAIN_DONE r12_loop_l2x4_ep2_gates_sup_s97 PSNR: 22.450
 EXIT 137 r12_loop_l2x4_geo_s95
 CHAIN_FAIL r12_loop_l2x4_geo_s95: no final checkpoint
+EXIT 0 r12_loop_l2x4_boost_gates_sup_s95
+CHAIN_DONE r12_loop_l2x4_boost_gates_sup_s95 PSNR: 22.364
