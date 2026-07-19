@@ -88,3 +88,9 @@ EXIT 0 r7_loop_l2x4_boost_sup_s95
 CHAIN_DONE r7_loop_l2x4_boost_sup_s95 PSNR: 22.321
 EXIT 0 r7_loop_l2x4_ep2_sup_s95
 CHAIN_DONE r7_loop_l2x4_ep2_sup_s95 PSNR: 22.358
+EXIT 0 r8_loop_l2x4_boost_ep2_s95
+CHAIN_DONE r8_loop_l2x4_boost_ep2_s95 PSNR: 22.333
+EXIT 0 r8_loop_l2x4_pli_s95
+CHAIN_DONE r8_loop_l2x4_pli_s95 PSNR: 22.121
+EXIT 1 r9_loop_l2x4_ep2_pli_sup_s95
+CHAIN_FAIL r9_loop_l2x4_ep2_pli_sup_s95: no final checkpoint

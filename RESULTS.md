@@ -149,8 +149,9 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r7_loop_l2x4_ep2_sup_s95 | **ep2 + sup (직교축)** | ~4.2 | **22.358** | **0.2829** | **+0.154** | **거의 완전 가산!** (0.077+0.083=0.160) — orthogonal 스택이 핵심 |
 | r8_loop_l2x4_boost_ep2_sup_s95 | boost+ep2+sup (총동원) | | (진행중) | | | 스택 상한 확인 |
 | r7_loop_l2x4_boost_sup_s95 | boost + sup | ~4.4 | 22.321 | 0.2880 | +0.117 | sup(+0.083) 위 boost +0.034 — 강한 sub-additive (같은 축) |
-| r8_loop_l2x4_boost_ep2_s95 | boost + ep2 (용량×fit) | | (진행중) | | | 두 물리 메커니즘 직교 스택 |
-| r8_loop_l2x4_pli_s95 | **per-loop 학습 init (7.0M)** | ~4.55 (동일) | (진행중) | | | 메모리공간에 파라미터 추가 (binding 직격, 0 FLOPs) |
+| r8_loop_l2x4_boost_ep2_s95 | boost + ep2 (용량×fit) | ~4.3 | 22.333 | 0.2840 | +0.130 | 부분 겹침 (둘 다 메모리-fit) |
+| r9_loop_l2x4_ep2_pli_sup_s95 | ep2+pli+sup (3직교축) | | (진행중) | | | fit×메모리파라미터×loss |
+| r8_loop_l2x4_pli_s95 | per-loop 학습 init (7.0M) | 4.56 (동일) | 22.121 | 0.2889 | **−0.083** | **해로움 — 공유 init가 더 낫다** (meta-learning/정규화 이득). "타협" 가설 기각 |
 
 - **boost가 핵심 발견**: fast weight는 활성값이므로 loop가 시간축으로 메모리 인스턴스를 여러 개
   만들고, 각자 이전 loop의 잔차만 담당 → 동일 arch·동일 속도로 +0.10. delta/gates(+0.03~0.04)의
