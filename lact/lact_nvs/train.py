@@ -64,6 +64,15 @@ parser.add_argument("--stoch_depth", type=str, default="",
                     help="Stochastic loop-count training: comma list of loop counts to "
                          "sample per step (e.g. '2,3,4,5,6', mean ~= n_loops so train "
                          "compute stays ~baseline). Eval uses n_loops. Empty = off.")
+parser.add_argument("--kd_teacher", type=str, default="",
+                    help="Cross-model knowledge distillation: path to a frozen pretrained "
+                         "DEEP teacher checkpoint (e.g. a dedicated L2x6+sup model). The "
+                         "shallow student's render is pulled toward the teacher's render. "
+                         "Inference stays iso (student only); teacher is train-only.")
+parser.add_argument("--kd_config", type=str, default="",
+                    help="Config yaml for the KD teacher model.")
+parser.add_argument("--kd_weight", type=float, default=1.0,
+                    help="Weight of the KD render-matching loss.")
 parser.add_argument("--seed", type=int, default=95)
 
 args = parser.parse_args()
@@ -187,6 +196,19 @@ if dist.get_rank() == 0:
 
 remaining_steps = args.steps - now_iters
 lpips_loss_module = lpips.LPIPS(net="vgg").cuda().eval()
+
+# Cross-model KD teacher (frozen, train-only): a dedicated deep model whose render
+# the shallow student learns to match. Inference uses only the student.
+kd_teacher = None
+if args.kd_teacher:
+    kd_cfg = omegaconf.OmegaConf.load(args.kd_config)
+    kd_teacher = LaCTLVSM(**kd_cfg).cuda().eval()
+    kd_ckpt = torch.load(args.kd_teacher, map_location="cpu", weights_only=False)
+    kd_teacher.load_state_dict(kd_ckpt["model"] if "model" in kd_ckpt else kd_ckpt)
+    for p in kd_teacher.parameters():
+        p.requires_grad_(False)
+    if dist.get_rank() == 0:
+        print(f"KD teacher loaded from {args.kd_teacher}", flush=True)
 for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
     for data_dict in dataloader:
         data_dict = {key: value.cuda() for key, value in data_dict.items() if isinstance(value, torch.Tensor)}
@@ -216,6 +238,11 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
                 if weights:
                     aux_loss = sum(wt * F.mse_loss(r, target) for wt, r in zip(weights, renders[:-1]))
                     aux_loss = args.loop_sup_weight * aux_loss / sum(weights)
+
+            if kd_teacher is not None:
+                with torch.no_grad():
+                    t_render = kd_teacher(input_data_dict, target_data_dict)
+                aux_loss = aux_loss + args.kd_weight * F.mse_loss(rendering, t_render.detach())
 
             if args.distill_weight > 0:
                 # Deep-teacher self-distillation: same tied weights, more loop passes,
