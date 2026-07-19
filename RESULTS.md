@@ -115,7 +115,8 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | r5_loop_l2x4_chunk_s95 | 4-chunk 순차 delta write (muon→1) | ~1.00× | 20.939 | 0.3257 | **−1.265** | **대실패** — NVS엔 대청크가 옳음 (LaCT 선택 재확인) |
 | r5_loop_l2x4_sfm_s95 | SfM (carry+delta+incremental) | 0.90× | 20.239 | 0.3520 | **−1.965** | **최악 실패 — carry 계열 0/6 사망** |
 | r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | 22.269 | 0.2903 | +0.065 (t=6.8) | 균일 절감 프런티어는 좁을수록 하락 (d224×6보다 나쁨) |
-| r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | **22.670** | **0.2711** | +0.466 | **delta는 6 loop에서 무기여** (delta판과 동일) — 레시피 미니멀화 가능 |
+| r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | 22.670 | 0.2711 | +0.466 | delta는 6 loop에서 무기여 (delta판과 동일) — 레시피 미니멀화 가능 |
+| r7_loop_l2x6_sup_s95 | **L2×6 + sup** | 1.5× | **22.781** | **0.2718** | **+0.578 (t=46)** | 절대 최고치 (sup이 ×6에 +0.11 추가). 단 1.5× compute |
 | r6_loop_l2x8_d192_s95 | width↔depth: d192로 8 loop | ~0.98× | 22.164 | 0.2954 | −0.040 | 깊은-좁은 끝은 음수 — **프런티어 = 역U자, 정점 d240×5/d224×6 (+0.13)** |
 | r7_loop_l2x5_muon2_s95 | d256 유지, muon 5→2로 5 loop | ~1.15× | 21.865 | 0.2968 | **−0.339** | **NS 반복 절감은 해로움** — Muon orthogonalization 품질이 loop당 중요 |
 

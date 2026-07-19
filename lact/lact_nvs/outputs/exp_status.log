@@ -78,3 +78,5 @@ EXIT 0 r7_loop_l2x5_muon2_s95
 CHAIN_DONE r7_loop_l2x5_muon2_s95 PSNR: 21.865
 EXIT 0 r6_loop_l2x5_delta_sup_s97
 CHAIN_DONE r6_loop_l2x5_delta_sup_s97 PSNR: 22.537
+EXIT 0 r7_loop_l2x6_sup_s95
+CHAIN_DONE r7_loop_l2x6_sup_s95 PSNR: 22.781
