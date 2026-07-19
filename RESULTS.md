@@ -138,6 +138,20 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 - late-join 실패의 함의: target 깊이 8→4에서 −1.66dB. **loop 이득의 상당 부분 = target-side 반복
   read-out.** input-side 절감(F1)은 유효하되 target쪽을 깎으면 안 됨 → read-heavy가 정확한 역실험.
 
+## Wave 7 — TTT×loop 고유 물리 (PI: 자원 재배분 금지, iso-compute)
+
+| exp | 메커니즘 | it/s (vs naive 4.55) | PSNR | LPIPS | vs naive(s95) | 판정 |
+|---|---|---|---|---|---|---|
+| r7_loop_l2x4_boost_s95 | **boosting (잔차 특화, 유효용량 ×n)** | **4.60 (동일!)** | **22.303** | 0.2869 | **+0.099** | **진짜 iso-compute 최고 메커니즘** — 죽었던 carry 계열 부활 |
+| r7_loop_l2x4_ep2_s95 | inner epochs=2 (underfit 공격) | ~4.3 | (진행중) | | | |
+| r7_loop_l2x4_boost_sup_s95 | boost + sup | | (진행중) | | | |
+| r7_loop_l2x4_ep2_sup_s95 | ep2 + sup | | (진행중) | | | |
+| r8_loop_l2x4_boost_ep2_s95 | boost + ep2 (용량×fit) | | (진행중) | | | 두 물리 메커니즘 직교 스택 |
+
+- **boost가 핵심 발견**: fast weight는 활성값이므로 loop가 시간축으로 메모리 인스턴스를 여러 개
+  만들고, 각자 이전 loop의 잔차만 담당 → 동일 arch·동일 속도로 +0.10. delta/gates(+0.03~0.04)의
+  2~3배이며 **속도 페널티 0**. attention loop엔 없는 성질을 직접 활용.
+
 ## 라운드 4 (진행 중)
 
 | exp | config | PSNR | LPIPS | paired Δ vs reset(s95) | 비고 |
