@@ -44,6 +44,8 @@ def _loop_fast_weight_apply(
     update_epochs: int = 1,
     wp0=None, wp1=None, wp2=None,
     read_refine: float = 0.0,
+    precond_w1: int = 0,
+    precond_lambda: float = 0.1,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -106,9 +108,25 @@ def _loop_fast_weight_apply(
                 dgate = dhidden * hidden_before_mul
                 dgate_before_act = silu_backprop(dgate, gate_before_act)
 
-                w1_grad = zeropower_via_newtonschulz5(
-                    (hidden * lr1e).transpose(-1, -2) @ vt, muon_update_steps
-                )
+                w1_raw = (hidden * lr1e).transpose(-1, -2) @ vt  # [b, dh, d] raw grad
+                if precond_w1 > 0:
+                    # Gauss-Newton / RLS readout: w1 is a LINEAR map from hidden H,
+                    # so its optimal update preconditions the raw grad by (HᵀH+λI)⁻¹.
+                    # Solve via Richardson iteration (operator form, no dh×dh matrix):
+                    # M y = HᵀHy + λy computed as Hᵀ(Hy)+λy. NS is scale-invariant, so
+                    # only the ANISOTROPY of the preconditioner survives -> escapes the
+                    # dead lr-knob trap. precond_w1=0 -> exact baseline.
+                    Hf = hidden.float()
+                    hnorm2 = (Hf * Hf).sum(dim=(1, 2), keepdim=True)  # ||H||_F^2 >= max eig
+                    lam = precond_lambda * hnorm2 / hidden.shape[-1]
+                    c = hnorm2 + lam
+                    y = w1_raw.float() / c
+                    g = w1_raw.float()
+                    for _ in range(precond_w1):
+                        My = Hf.transpose(-1, -2) @ (Hf @ y) + lam * y
+                        y = y + (g - My) / c
+                    w1_raw = y.to(w1_raw.dtype)
+                w1_grad = zeropower_via_newtonschulz5(w1_raw, muon_update_steps)
                 w0_grad = zeropower_via_newtonschulz5(
                     (ki * lr0e).transpose(-1, -2) @ dgate_before_act, muon_update_steps
                 )
@@ -228,10 +246,12 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
-                 momentum=0.0, **kwargs):
+                 momentum=0.0, precond_w1=0, precond_lambda=0.1, **kwargs):
         super().__init__(*args, **kwargs)
         self.read_refine = read_refine  # apply-side re-query strength (0 = off)
         self.momentum = momentum        # cross-loop heavy-ball coefficient (0 = off)
+        self.precond_w1 = precond_w1    # Gauss-Newton/RLS Richardson iters on w1 (0 = off)
+        self.precond_lambda = precond_lambda
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
         known = {"lrs", "rho", "rho2", "delta", "boost"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
@@ -329,6 +349,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 update_epochs=self.update_epochs,
                 wp0=wp0, wp1=wp1, wp2=wp2,
                 read_refine=self.read_refine,
+                precond_w1=self.precond_w1,
+                precond_lambda=self.precond_lambda,
                 rho_gate="rho" in self.loop_flags,
                 rho_post="rho2" in self.loop_flags,
                 delta="delta" in self.loop_flags,

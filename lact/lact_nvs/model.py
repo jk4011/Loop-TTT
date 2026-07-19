@@ -201,7 +201,7 @@ class LaCTLVSM(nn.Module):
                  n_loops=1, ttt_state_mode="reset", input_injection="none",
                  loop_film=False, view_schedule="all", update_chunks=1,
                  render_feedback=False, target_loops=0, loop_gates=False,
-                 input_loops=0):
+                 input_loops=0, feat_mom=False):
         """
         Looped-TTT extension of LaCT LVSM.
 
@@ -267,6 +267,11 @@ class LaCTLVSM(nn.Module):
         # LT2-style per-loop residual gate on the whole loop body:
         # x <- x + loop_rho[l] * x_loop_start (zero-init).
         self.loop_rho = nn.Parameter(torch.zeros(n_loops, dim)) if loop_gates else None
+        # feat_mom: Anderson/Nesterov extrapolation of the feature fixed-point
+        # iteration. At loop start, x <- x + beta[loop] * (x - x_prev): the loop's
+        # own convergence direction is extrapolated -> fractional extra depth at ~0
+        # FLOPs, in feature space where Muon cannot erase it. beta zero-init = baseline.
+        self.feat_mom = nn.Parameter(torch.zeros(n_loops, dim)) if feat_mom else None
 
         self.image_token_decoder = nn.Sequential(
             nn.LayerNorm(self.dim, bias=False),
@@ -381,6 +386,7 @@ class LaCTLVSM(nn.Module):
         saved_states = [{} for _ in self.blocks]
         loop_renders = []
         frozen_targets = None
+        x_prev_loop = None
         for loop_idx in range(self.n_loops):
             if self.target_loops > 0:
                 if loop_idx == 0 and join_loop > 0:
@@ -394,6 +400,12 @@ class LaCTLVSM(nn.Module):
                 x = x[:, num_input_tokens:]  # drop input tokens; memory is written
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
+            if self.feat_mom is not None:
+                # loop 0 references feat_mom[0] as a no-op (x_prev=x) so every row
+                # enters the autograd graph (DDP requires all params used).
+                delta = (x - x_prev_loop) if x_prev_loop is not None else torch.zeros_like(x)
+                x = x + self.feat_mom[loop_idx] * delta
+                x_prev_loop = x
             x_loop_start = x if self.loop_rho is not None else None
             for block_idx, block in enumerate(self.blocks):
                 extra_state = saved_states[block_idx] if read_phase else block_states[block_idx]

@@ -15,7 +15,42 @@
 | 2 | r1_lact_l8_s97 | L8 seed 97 |
 | 3 | r1_loop_l2x4_s97 | reset loop seed 97 |
 
-## WAVE 7 (TTT×loop 고유 물리 — PI 지시: 자원 재배분 금지, 동일 arch/compute) — 코드 완료
+## WAVE 10 — 100-아이디어(10 subagent) 선별 큐 (상세: IDEAS_100.md)
+
+선별 기준: 다수 에이전트 수렴 + 직교축(stacking law) + 미니멀·0~tiny param·zero-init + ≤1.1× + 실패군 무관.
+확정 winner(iso): boost+0.099, ep2+0.077, sup+0.073, gates+0.033 → ep2+sup+gates 스택 +0.187.
+
+### TIER 1 — 다수 에이전트 flagship (최우선 구현·실행)
+1. **precond_w1 (Gauss-Newton/RLS readout)** [agents 1,10,4]: w1 update를 `(HᵀH+λI)⁻¹`로 좌
+   preconditioning(Neumann/Richardson J항, solve 없이). NS는 scale-invariant→방향만 살아 lr-trap 회피.
+   binding underfit(cos 0.3~0.5) 직격 + carry에 고정점. 축=conditioning(신규). **구현 중.**
+2. **cumboost (cumulative-residual boost)** [agents 9,5,2,6]: boost 이중계산 버그 수정 — 토큰공간 잔차 r을
+   carry, `r←r−h_{W_ℓ}(k)` 단조감소(v_0 anchor). 진짜 gradient boosting. 축=capacity(boost upgrade). +0.15~0.25 추정.
+3. **feat_mom (feature Anderson/Nesterov)** [agents 4,6,7]: `x += β[loop]·(x−x_prev)`, β zero-init.
+   loop 자체 수렴방향 외삽 = 공짜 유효깊이. Muon 무관(feature축). ~0 FLOPs. 축=feature-trajectory(신규).
+4. **epavg (Polyak iterate averaging)** [agents 1,2,7]: ep 반복의 w1 iterate 평균을 apply에. ep3 포화(궤도)를
+   fit으로 전환. 축=fit(ep2 확장/대체).
+
+### TIER 2 — 강력·직교축
+5. **c2f_muon (spectral coarse-to-fine NS steps)** [agents 8,10]: muon steps loop마다 {2,4,6,8}(총20=baseline).
+   NS는 update 모양만 바꿈→lr-trap 회피. 축=update-spectrum(신규). LPIPS.
+6. **loop_temp (per-loop key/query temperature τ)** [agents 5,8]: q,k에 per-loop τ(softplus, init 1).
+   forward silu 모양 변경→lr-trap 회피. 축=bandwidth/radial(신규).
+7. **key_center (DC decorrelation)** [agent 5]: `k −= α·k.mean(chunk)`, α zero-init. key crosstalk 제거→
+   단일 인스턴스 유효용량↑. 축=address-decorrelation(신규).
+8. **plucker_addr (reciprocal-product addressing)** [agent 3]: epipolar bilinear `d_t·m_i+m_t·d_i`를 k/q에
+   주입(γ zero-init). 이전 프로젝트 camera +1.7dB의 TTT판. 축=addressing(신규, geometry).
+9. **opcompose (deeper fast-net)** [agent 2]: 연산자 합성 `f_{W_n}∘…∘f_{W_1}`, γ zero-init blend. 축=depth(신규). 高분산.
+10. **readout_agg (learned per-loop readout)** [agents 2,4,10]: decode를 `Σw_ℓ x_ℓ`(softmax, one-hot init)에서. 축=readout(신규).
+
+### TIER 3 — train-only (eval FLOPs 0)
+11. **self_distill** [agents 4,7]: `Σ MSE(render_ℓ, sg(render_{ℓ+1}))`. 축=loss.
+12. **fit_sup** [agent 6]: `Σ(1−cos(f_W(k),v))` aux loss. 축=loss/memory-space.
+
+### 실행 원칙: 각 단독 s95 측정(vs naive 22.204) → 양성이면 ep2+sup+gates 스택에 추가 → 3-seed.
+### 최종 스택 = 각 직교축 승자 + sup + gates. 목표 누적 +0.5.
+
+## WAVE 7 (TTT×loop 고유 물리 — 코드 완료, 축 지도 완성)
 
 목표: 동일 architecture·~1.0× compute로 naive loop(+delta+sup 대비) 순증. 각 메커니즘을
 단독(vs naive 22.204)과 sup 스택(vs sup 22.287)으로 이중 측정.

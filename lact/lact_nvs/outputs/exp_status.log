@@ -108,3 +108,5 @@ EXIT 0 r9_loop_l2x4_rr_s95
 CHAIN_DONE r9_loop_l2x4_rr_s95 PSNR: 22.197
 EXIT 0 r10_loop_l2x4_mom_s95
 CHAIN_DONE r10_loop_l2x4_mom_s95 PSNR: 12.216
+EXIT 0 r10_loop_l2x4_ep2_gates_sup_s96
+CHAIN_DONE r10_loop_l2x4_ep2_gates_sup_s96 PSNR: 22.360
