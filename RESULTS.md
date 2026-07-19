@@ -117,11 +117,15 @@ cos_post = update 후, dw1_rel = 상대 스텝 크기):
 | r6_loop_l2x7_delta_d208_s95 | width↔depth: d208로 7 loop | ~1.00× | 22.269 | 0.2903 | +0.065 (t=6.8) | 균일 절감 프런티어는 좁을수록 하락 (d224×6보다 나쁨) |
 | r5_loop_l2x6_s95 | L2×6 plain (delta 기여 분리 control) | 1.5× | **22.670** | **0.2711** | +0.466 | **delta는 6 loop에서 무기여** (delta판과 동일) — 레시피 미니멀화 가능 |
 | r6_loop_l2x8_d192_s95 | width↔depth: d192로 8 loop | ~0.98× | 22.164 | 0.2954 | −0.040 | 깊은-좁은 끝은 음수 — **프런티어 = 역U자, 정점 d240×5/d224×6 (+0.13)** |
-| r7_loop_l2x5_muon2_s95 | d256 유지, muon 5→2로 5 loop | ~1.15× | (진행중) | | | 희생-대상 패널 3축: NS 반복 |
+| r7_loop_l2x5_muon2_s95 | d256 유지, muon 5→2로 5 loop | ~1.15× | 21.865 | 0.2968 | **−0.339** | **NS 반복 절감은 해로움** — Muon orthogonalization 품질이 loop당 중요 |
+
+### 희생-대상 패널 결론: loop를 사기 위해 무엇을 깎아도 손해
+width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도 loop와 iso-compute 교환 시
+정점이 +0.13.** → 자원 재배분으로는 +0.5 불가. TTT×loop 물리(wave 7)가 유일한 길.
 | r6_loop_l2x5_delta_sup_s95 | 5 full loops + delta + sup | 1.25× | **22.596** | **0.2771** | **+0.392 (t=29.7)** | ×6(1.5×, 22.648)를 거의 따라잡음 — 곡선 5에서 대부분 포화 |
 | r6_loop_l2x5_delta_sup_s96 | 〃 (s96) | 1.25× | 22.331 | 0.2807 | +0.243 (t=22.9) | 두 seed 일관 — s97 진행 중 |
 | r6_loop_l2x5_delta_d240_s95 | width↔depth: d240으로 5 loop | ~0.97× | 22.338 | 0.2863 | +0.134 (t=12.6) | 균일-절감 프런티어 정점 (~+0.13에서 평탄) |
-| r7_loop_l2x5_d240_gates_s95 | d240×5 + gates 스택 | ~0.97× | (진행중) | | | |
+| r7_loop_l2x5_d240_gates_s95 | d240×5 + gates 스택 | ~0.97× | 22.366 | 0.2835 | +0.16 | gates가 d240×5(+0.13)에 미세 추가 |
 
 - **Test-time loop 외삽 실패** (기존 ckpt eval): L2×6 모델→4/8 loop = 20.4/18.3; L2×4→5/6 = 20.7/19.1.
   고정-L 훈련은 다른 L로 추론 불가 (Ouro와 일치). test-time scaling엔 stochastic-L 훈련 필요 — 보류.
