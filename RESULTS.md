@@ -158,6 +158,16 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
   만들고, 각자 이전 loop의 잔차만 담당 → 동일 arch·동일 속도로 +0.10. delta/gates(+0.03~0.04)의
   2~3배이며 **속도 페널티 0**. attention loop엔 없는 성질을 직접 활용.
 
+## Wave 10+ — 100-아이디어 flagship (iso-compute, IDEAS_100.md / experiment_queue TIER1-3)
+
+| exp | 메커니즘 | 근거 | PSNR | LPIPS | vs naive(s95) | 판정 |
+|---|---|---|---|---|---|---|
+| r10_loop_l2x4_mom_s95 | cross-loop momentum (heavy-ball) | 창의1 | 22.021 | 0.2929 | **−0.183** | 실패 — momentum 축 사망 |
+| r11_loop_l2x4_pw1_s95 | **precond_w1 (Gauss-Newton/RLS)** | agents 1,10,4 | (진행중) | | | ★flagship |
+| r11_loop_l2x4_cumboost_s95 | **cumulative-residual boost** | agents 9,5,2,6 | (진행중) | | | ★flagship (boost 버그수정) |
+| r11_loop_l2x4_fmom_s95 | feature Anderson/Nesterov | agents 4,6,7 | (진행중) | | | feature-trajectory 축 |
+| r11_loop_l2x4_epavg_s95 | Polyak iterate averaging | agents 1,2,7 | (진행중) | | | fit 축(ep3 궤도→fit) |
+
 ## Wave 9+ — 직교축 가산 스택 & 창의 메커니즘 (iso-compute)
 
 | exp | 스택/메커니즘 | PSNR | LPIPS | vs naive(s95) | 판정 |

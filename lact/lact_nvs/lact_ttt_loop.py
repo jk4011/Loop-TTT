@@ -48,6 +48,7 @@ def _loop_fast_weight_apply(
     precond_lambda: float = 0.1,
     cumboost: bool = False,
     r_in=None,
+    epavg: bool = False,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -89,6 +90,7 @@ def _loop_fast_weight_apply(
                 pred_prev = (F.silu(ki @ wp0, inplace=False) * (ki @ wp2)) @ wp1
                 vi = vi - pred_prev
 
+            w1_acc = None  # epavg: running sum of w1 iterates (Polyak averaging)
             for _ in range(update_epochs):
                 gate_before_act = ki @ w0_now
                 hidden_before_mul = ki @ w2_now
@@ -152,6 +154,15 @@ def _loop_fast_weight_apply(
                 w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
                 w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
                 w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
+                if epavg:
+                    w1_acc = w1_now if w1_acc is None else w1_acc + w1_now
+
+            if epavg and w1_acc is not None:
+                # Polyak/Ruppert: apply from the MEAN of the w1 iterates (orbit
+                # center) rather than the last (overshooting) iterate. w1 only —
+                # nonlinear w0/w2 averaging is ill-defined.
+                w1_now = w1_acc / update_epochs
+                w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
 
             if cumboost:
                 # New running residual: what THIS memory left unexplained (detached
@@ -260,8 +271,9 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
-                 momentum=0.0, precond_w1=0, precond_lambda=0.1, **kwargs):
+                 momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.epavg = epavg
         self.read_refine = read_refine  # apply-side re-query strength (0 = off)
         self.momentum = momentum        # cross-loop heavy-ball coefficient (0 = off)
         self.precond_w1 = precond_w1    # Gauss-Newton/RLS Richardson iters on w1 (0 = off)
@@ -371,6 +383,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 delta="delta" in self.loop_flags,
                 cumboost=cumboost,
                 r_in=info.get("r", None) if cumboost else None,
+                epavg=self.epavg,
             )
             state = {"w0": w0, "w1": w1, "w2": w2}
             if cumboost and r_out is not None:

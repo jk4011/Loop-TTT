@@ -1,0 +1,31 @@
+# Polyak/Ruppert iterate averaging (agents 1,2,7): update_epochs=3 but apply from
+# the MEAN of the 3 w1 iterates (orbit center) instead of the last. Turns ep3's
+# saturation (which orbits past the optimum) into fit. Fit axis (ep2 family).
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      update_epochs: 3
+      epavg: true
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
