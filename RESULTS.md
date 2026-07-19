@@ -170,7 +170,8 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r11_loop_l2x4_c2fmuon_s95 | spectral coarse-to-fine NS steps | agents 8,10 | (진행중) | | | update-spectrum 축 |
 
 **교훈: momentum·feat_mom 둘 다 실패 → loop는 가속/외삽이 아니라 실제 반복을 원한다.**
-| r11_loop_l2x4_epavg_s95 | Polyak iterate averaging | agents 1,2,7 | (진행중) | | | fit 축(ep3 궤도→fit) |
+| r11_loop_l2x4_epavg_s95 | Polyak iterate averaging | agents 1,2,7 | 22.192 | 0.2871 | **−0.012** | 중립 — ep3 궤도 구제 실패 |
+| r11_loop_l2x4_pw1diag_s95 | precond_w1 diagonal (결정 재시험) | agents 1,4 | (진행중) | | | fit-conditioning이 PSNR 병목인가 확정 |
 
 ## Wave 9+ — 직교축 가산 스택 & 창의 메커니즘 (iso-compute)
 

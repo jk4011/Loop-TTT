@@ -1,0 +1,34 @@
+# TTT-loop flagship (agents 1,10,4 converged): Gauss-Newton / RLS-readout inner
+# update. w1 is a LINEAR readout of the SwiGLU features H, so its optimal update
+# preconditions the raw gradient by (HᵀH+λI)⁻¹ (Richardson iters, no matrix solve).
+# Newton-Schulz is scale-invariant, so only the preconditioner's ANISOTROPY (its
+# direction) survives -> escapes the dead lr-knob trap; attacks the binding
+# memory underfit (cos 0.3-0.5). precond_w1=0 -> exact baseline.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      precond_w1: -1
+      precond_lambda: 0.1
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4

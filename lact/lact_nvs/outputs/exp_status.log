@@ -118,3 +118,5 @@ EXIT 0 r11_loop_l2x4_pw1_s95
 CHAIN_DONE r11_loop_l2x4_pw1_s95 PSNR: 22.179
 EXIT 0 r11_loop_l2x4_cumboost_s95
 CHAIN_DONE r11_loop_l2x4_cumboost_s95 PSNR: 20.686
+EXIT 0 r11_loop_l2x4_epavg_s95
+CHAIN_DONE r11_loop_l2x4_epavg_s95 PSNR: 22.192

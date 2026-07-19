@@ -119,7 +119,15 @@ def _loop_fast_weight_apply(
                 dgate_before_act = silu_backprop(dgate, gate_before_act)
 
                 w1_raw = (hidden * lr1e).transpose(-1, -2) @ vt  # [b, dh, d] raw grad
-                if precond_w1 > 0:
+                if precond_w1 < 0:
+                    # Diagonal (Jacobi) preconditioner: divide each row of the raw
+                    # grad by that hidden unit's second moment -> guaranteed
+                    # non-identity anisotropy (decisive test of whether conditioning
+                    # the w1 DIRECTION helps PSNR at all). Elementwise, ~0 FLOPs.
+                    Hf = hidden.float()
+                    d = (Hf * Hf).mean(dim=1, keepdim=True).transpose(-1, -2)  # [b, dh, 1]
+                    w1_raw = (w1_raw.float() / (d + precond_lambda * d.mean(dim=1, keepdim=True) + 1e-8)).to(w1_raw.dtype)
+                elif precond_w1 > 0:
                     # Gauss-Newton / RLS readout: w1 is a LINEAR map from hidden H,
                     # so its optimal update preconditions the raw grad by (HᵀH+λI)⁻¹.
                     # Solve via Richardson iteration (operator form, no dh×dh matrix):
