@@ -15,7 +15,18 @@
 | 2 | r1_lact_l8_s97 | L8 seed 97 |
 | 3 | r1_loop_l2x4_s97 | reset loop seed 97 |
 
-## WAVE 5 (big-swing: 목표 naive loop +0.5dB @ iso-compute) — 준비·스모크 완료
+## WAVE 7 (TTT×loop 고유 물리 — PI 지시: 자원 재배분 금지, 동일 arch/compute) — 코드 완료
+
+목표: 동일 architecture·~1.0× compute로 naive loop(+delta+sup 대비) 순증. 각 메커니즘을
+단독(vs naive 22.204)과 sup 스택(vs sup 22.287)으로 이중 측정.
+
+- **ep2** (`loop_l2x4_ep2`): inner update epochs=2 — underfit 직접 공격, drift-free 다중스텝. ~1.05×.
+- **boost** (`loop_l2x4_boost`): carry+boost — 신선 메모리에 이전 loop 잔차만 기록,
+  유효 용량 ×n_loops (binding 제약 직격). ~1.06×.
+- 스모크 통과 후 각각 s95 단독 + s95 sup스택. 유망하면 3-seed + momentum/rotation 파생.
+- 미구현 후보(결과 보고 투자): cross-loop momentum(Muon Eq.20 복원), per-loop 직교회전 addressing.
+
+## WAVE 5 (big-swing: 목표 naive loop +0.5dB @ iso-compute) — 완료(전멸/평탄, RESULTS.md)
 
 - GPU2 실행 중: **r5_loop_l2x5_lj_delta_s95** (late-join, 0.99×, +sup) ← L2×6 스케일링 발견 기반 1순위
 - 다음 슬롯: **r5_loop_l2x4_rfb_s95** (render feedback + delta, `--loop_sup_weight 0.5`)
