@@ -168,10 +168,13 @@ def _loop_momentum_apply(
     w2_norm = w2i.detach().norm(dim=1, keepdim=True)
     m0, m1, m2 = mp0, mp1, mp2
     have_m = mp0 is not None
+    # Current weights persist across segments within this call (updated in the
+    # update segment, read in the apply segment). Start from the fresh init.
+    w0_cur, w1_cur, w2_cur = w0i, w1i, w2i
 
     output = []
     for start, end, update, apply in ttt_ua_order:
-        w0_now, w1_now, w2_now = w0i, w1i, w2i
+        w0_now, w1_now, w2_now = w0_cur, w1_cur, w2_cur
 
         if update:
             ki, vi = k[:, start:end, :], v[:, start:end, :]
@@ -210,10 +213,11 @@ def _loop_momentum_apply(
             w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
             w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
             w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
+            w0_cur, w1_cur, w2_cur = w0_now, w1_now, w2_now
 
         if apply:
             qi = q[:, start:end, :]
-            oi = (F.silu(qi @ w0_now, inplace=False) * (qi @ w2_now)) @ w1_now
+            oi = (F.silu(qi @ w0_cur, inplace=False) * (qi @ w2_cur)) @ w1_cur
             output.append(oi)
 
     output = torch.cat(output, dim=1)
