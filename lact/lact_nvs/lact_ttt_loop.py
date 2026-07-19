@@ -280,9 +280,20 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
                  momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False,
-                 muon_schedule=None, key_center=0.0, loop_temp=False, **kwargs):
+                 muon_schedule=None, key_center=0.0, loop_temp=False,
+                 geo_addr=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.epavg = epavg
+        # geo_addr: condition the fast-weight q/k on per-patch Plücker geometry
+        # (ray dir + moment, 6-d). Reciprocal-product structure: q gets [m; d],
+        # k gets [d; m] (swapped) so q·k contains the epipolar term d_t·m_i + m_t·d_i.
+        # Zero-init gains -> exact baseline; the memory can learn epipolar addressing.
+        self.geo_addr = geo_addr
+        if geo_addr:
+            self.geo_q = nn.Linear(6, self.dim, bias=False)
+            self.geo_k = nn.Linear(6, self.dim, bias=False)
+            nn.init.zeros_(self.geo_q.weight)
+            nn.init.zeros_(self.geo_k.weight)
         self.key_center = key_center  # >0 enables DC-decorrelation of keys
         if key_center > 0.0:
             self.key_center_gate = nn.Parameter(torch.zeros(1))  # zero-init = baseline
@@ -351,6 +362,17 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             tau = F.softplus(self.loop_temp_raw[min(info.get("loop_idx", 0), self.n_loops_max - 1)])
             q = q * tau
             k = k * tau
+
+        if self.geo_addr and info.get("pose_tokens", None) is not None:
+            # pose_tokens [b, l, 6] = [ray_d(3), moment(3)]. Swap for reciprocal
+            # product: q reads with [m; d], k writes with [d; m]. num_heads==1 here
+            # so (b h) l d == b l d and the projection aligns directly.
+            pose = info["pose_tokens"].to(q.dtype)
+            pose_swap = torch.cat([pose[..., 3:], pose[..., :3]], dim=-1)
+            q = q + self.geo_q(pose_swap)
+            k = k + self.geo_k(pose)
+            q = q / (q.norm(dim=2, keepdim=True) + 1e-5)
+            k = k / (k.norm(dim=2, keepdim=True) + 1e-5)
 
         with torch.autocast(device_type="cuda", enabled=False):
             lr = self.lr_fc(x.float())  # [b, l, 3 * lr_dim]

@@ -201,7 +201,7 @@ class LaCTLVSM(nn.Module):
                  n_loops=1, ttt_state_mode="reset", input_injection="none",
                  loop_film=False, view_schedule="all", update_chunks=1,
                  render_feedback=False, target_loops=0, loop_gates=False,
-                 input_loops=0, feat_mom=False):
+                 input_loops=0, feat_mom=False, geo_addr=False):
         """
         Looped-TTT extension of LaCT LVSM.
 
@@ -272,6 +272,11 @@ class LaCTLVSM(nn.Module):
         # own convergence direction is extrapolated -> fractional extra depth at ~0
         # FLOPs, in feature space where Muon cannot erase it. beta zero-init = baseline.
         self.feat_mom = nn.Parameter(torch.zeros(n_loops, dim)) if feat_mom else None
+        # geo_addr: compute per-patch Plücker (ray dir + moment) and feed to the TTT
+        # layer so its fast-weight addressing can be conditioned on camera geometry
+        # (the epipolar constraint), the axis that gave +1.7 dB in the attention
+        # camera-conditioning prior. Injected zero-init in the TTT layer -> baseline.
+        self.geo_addr = geo_addr
 
         self.image_token_decoder = nn.Sequential(
             nn.LayerNorm(self.dim, bias=False),
@@ -350,6 +355,18 @@ class LaCTLVSM(nn.Module):
             pose_only_dim = target_data_dict["pose_only"].size(2)
             transformer_input[:, num_input_views:, :pose_only_dim, :, :] = target_data_dict["pose_only"]
 
+            pose_tokens = None
+            if self.geo_addr:
+                pose_maps = []
+                for dd, nv in [(input_data_dict, num_input_views), (target_data_dict, num_target_views)]:
+                    rd = F.avg_pool2d(dd["ray_d"].flatten(0, 1), self.patch_size).unflatten(0, (batch_size, nv))
+                    rd = rd / (rd.norm(dim=2, keepdim=True) + 1e-6)          # [b, v, 3, hh, ww]
+                    center = dd["c2w"][:, :, :3, 3][..., None, None].expand_as(rd)
+                    m = torch.cross(center, rd, dim=2)                      # Plücker moment
+                    pm = torch.cat([rd, m], dim=2)                          # [b, v, 6, hh, ww]
+                    pose_maps.append(rearrange(pm, "b v c hh ww -> b (v hh ww) c"))
+                pose_tokens = torch.cat(pose_maps, dim=1)                   # [b, vl, 6]
+
         # Running the model
         num_img_tokens = h * w // (self.patch_size**2)
         num_input_tokens = num_input_views * num_img_tokens
@@ -357,6 +374,8 @@ class LaCTLVSM(nn.Module):
         info = {
             "num_img_tokens": num_img_tokens,
         }
+        if self.geo_addr:
+            info["pose_tokens"] = pose_tokens
         join_loop = self.n_loops - self.target_loops if self.target_loops > 0 else 0
         op_order_of_loop = []
         for li in range(self.n_loops):
