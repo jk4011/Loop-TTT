@@ -41,13 +41,27 @@ def _loop_fast_weight_apply(
     rho_gate: bool = False,
     rho_post: bool = False,
     delta: bool = False,
+    update_epochs: int = 1,
+    wp0=None, wp1=None, wp2=None,
 ):
-    """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply with
-    residual-gated lr (rho_gate) and/or delta-write targets (delta).
-    Identical to the baseline kernel when both flags are False."""
+    """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
+
+    Extra loop-aware knobs (all reduce to the baseline kernel when off):
+      delta         regress onto v - f_w(k) instead of v.
+      update_epochs E>1: apply the TTT update E times on the SAME (k, v) chunk,
+                    each on the evolving weights (drift-free multi-step descent;
+                    directly attacks the measured single-step underfit). Attention
+                    /MLP/qkv are NOT recomputed, so cost ~ +1/3 TTT per extra epoch.
+      wp0/1/2       cross-loop BOOSTING: previous loop's converged fast weights.
+                    Their SwiGLU prediction on the current keys is subtracted from
+                    the update target, so this fresh memory only stores the residual
+                    the previous memory left (effective capacity x n_loops). Weights
+                    are still init-fresh (reset), so no carry re-write pathology.
+    """
     w0_norm = w0.detach().norm(dim=1, keepdim=True)
     w1_norm = w1.detach().norm(dim=1, keepdim=True)
     w2_norm = w2.detach().norm(dim=1, keepdim=True)
+    boost = wp0 is not None
 
     output = []
     for start, end, update, apply in ttt_ua_order:
@@ -59,55 +73,58 @@ def _loop_fast_weight_apply(
             lr1i = lr1[:, start:end, :]
             lr2i = lr2[:, start:end, :]
 
-            gate_before_act = ki @ w0_now
-            hidden_before_mul = ki @ w2_now
-            hidden = F.silu(gate_before_act, inplace=False) * hidden_before_mul
+            if boost:
+                # Residual target: what the previous loop's memory could not explain.
+                pred_prev = (F.silu(ki @ wp0, inplace=False) * (ki @ wp2)) @ wp1
+                vi = vi - pred_prev
 
-            if rho_gate or rho_post or delta:
-                # Current memory prediction for the update keys (one extra bmm).
-                f_k = hidden @ w1_now  # [b, l, d]
+            for _ in range(update_epochs):
+                gate_before_act = ki @ w0_now
+                hidden_before_mul = ki @ w2_now
+                hidden = F.silu(gate_before_act, inplace=False) * hidden_before_mul
 
-            if rho_gate:
-                rho = 1.0 - F.cosine_similarity(f_k, vi, dim=-1).unsqueeze(-1)
-                rho = rho.detach().to(lr0i.dtype)
-                lr0i = lr0i * rho
-                lr1i = lr1i * rho
-                lr2i = lr2i * rho
+                if rho_gate or rho_post or delta:
+                    # Current memory prediction for the update keys (one extra bmm).
+                    f_k = hidden @ w1_now  # [b, l, d]
 
-            if rho_post:
-                # Chunk-level misfit in [0, 2]; ~1 at init (cos ~ 0), -> 0 as the
-                # memory explains the chunk. Applied AFTER NS (see module docstring).
-                rho_bar = (
-                    1.0 - F.cosine_similarity(f_k, vi, dim=-1).mean(dim=1)
-                ).detach()[:, None, None]
+                lr0e, lr1e, lr2e = lr0i, lr1i, lr2i
+                if rho_gate:
+                    rho = 1.0 - F.cosine_similarity(f_k, vi, dim=-1).unsqueeze(-1)
+                    rho = rho.detach().to(lr0i.dtype)
+                    lr0e, lr1e, lr2e = lr0i * rho, lr1i * rho, lr2i * rho
 
-            vt = vi - f_k if delta else vi
+                if rho_post:
+                    rho_bar = (
+                        1.0 - F.cosine_similarity(f_k, vi, dim=-1).mean(dim=1)
+                    ).detach()[:, None, None]
 
-            dhidden = vt @ w1_now.transpose(-1, -2)
-            dhidden_before_mul = dhidden * F.silu(gate_before_act, inplace=False)
-            dgate = dhidden * hidden_before_mul
-            dgate_before_act = silu_backprop(dgate, gate_before_act)
+                vt = vi - f_k if delta else vi
 
-            w1_grad = zeropower_via_newtonschulz5(
-                (hidden * lr1i).transpose(-1, -2) @ vt, muon_update_steps
-            )
-            w0_grad = zeropower_via_newtonschulz5(
-                (ki * lr0i).transpose(-1, -2) @ dgate_before_act, muon_update_steps
-            )
-            w2_grad = zeropower_via_newtonschulz5(
-                (ki * lr2i).transpose(-1, -2) @ dhidden_before_mul, muon_update_steps
-            )
-            if rho_post:
-                w1_grad = w1_grad * rho_bar
-                w0_grad = w0_grad * rho_bar
-                w2_grad = w2_grad * rho_bar
-            w1_now = w1_now + w1_grad
-            w0_now = w0_now + w0_grad
-            w2_now = w2_now + w2_grad
+                dhidden = vt @ w1_now.transpose(-1, -2)
+                dhidden_before_mul = dhidden * F.silu(gate_before_act, inplace=False)
+                dgate = dhidden * hidden_before_mul
+                dgate_before_act = silu_backprop(dgate, gate_before_act)
 
-            w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
-            w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
-            w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
+                w1_grad = zeropower_via_newtonschulz5(
+                    (hidden * lr1e).transpose(-1, -2) @ vt, muon_update_steps
+                )
+                w0_grad = zeropower_via_newtonschulz5(
+                    (ki * lr0e).transpose(-1, -2) @ dgate_before_act, muon_update_steps
+                )
+                w2_grad = zeropower_via_newtonschulz5(
+                    (ki * lr2e).transpose(-1, -2) @ dhidden_before_mul, muon_update_steps
+                )
+                if rho_post:
+                    w1_grad = w1_grad * rho_bar
+                    w0_grad = w0_grad * rho_bar
+                    w2_grad = w2_grad * rho_bar
+                w1_now = w1_now + w1_grad
+                w0_now = w0_now + w0_grad
+                w2_now = w2_now + w2_grad
+
+                w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
+                w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
+                w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
 
             w0, w1, w2 = w0_now, w1_now, w2_now
 
@@ -123,13 +140,15 @@ def _loop_fast_weight_apply(
 
 class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
-    def __init__(self, *args, loop_mode="none", n_loops_max=8, **kwargs):
+    def __init__(self, *args, loop_mode="none", n_loops_max=8,
+                 update_epochs=1, **kwargs):
         super().__init__(*args, **kwargs)
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
-        known = {"lrs", "rho", "rho2", "delta"}
+        known = {"lrs", "rho", "rho2", "delta", "boost"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
         self.loop_flags = flags
         self.n_loops_max = n_loops_max
+        self.update_epochs = update_epochs  # inner TTT steps per pass on same chunk
 
         if "lrs" in flags:
             # One bias per (loop, lr-slot); zero-init = baseline schedule.
@@ -158,7 +177,18 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             lrs=3, h=self.num_heads
         )
 
-        if "w0" in info:
+        boost = "boost" in self.loop_flags
+        wp0 = wp1 = wp2 = None
+        if boost:
+            # Boosting: always update from the fresh learned init; the carried
+            # weights (from the previous loop) are used only to form the residual
+            # target. They arrive under "w0"/"w1"/"w2" via the model's carry path.
+            if "w0" in info:
+                wp0, wp1, wp2 = info["w0"], info["w1"], info["w2"]
+            w0 = self.w0.repeat(x.shape[0], 1, 1)
+            w1 = self.w1.repeat(x.shape[0], 1, 1)
+            w2 = self.w2.repeat(x.shape[0], 1, 1)
+        elif "w0" in info:
             assert "w1" in info and "w2" in info
             w0, w1, w2 = info["w0"], info["w1"], info["w2"]
         else:
@@ -169,6 +199,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         output, w0, w1, w2 = _loop_fast_weight_apply(
             w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
             muon_update_steps=self.muon_update_steps,
+            update_epochs=self.update_epochs,
+            wp0=wp0, wp1=wp1, wp2=wp2,
             rho_gate="rho" in self.loop_flags,
             rho_post="rho2" in self.loop_flags,
             delta="delta" in self.loop_flags,
