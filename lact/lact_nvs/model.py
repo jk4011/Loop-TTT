@@ -390,9 +390,14 @@ class LaCTLVSM(nn.Module):
         }
         if self.geo_addr:
             info["pose_tokens"] = pose_tokens
-        join_loop = self.n_loops - self.target_loops if self.target_loops > 0 else 0
+        # n_eff = the ACTUAL number of loop passes this call runs. Defaults to the
+        # configured n_loops; a deeper value (distill teacher) or a sampled value
+        # (stochastic depth) can override it. Per-loop param lookups clamp to their
+        # array size, so a plain loop runs at any depth.
+        n_eff = n_loops_override if n_loops_override is not None else self.n_loops
+        join_loop = n_eff - self.target_loops if self.target_loops > 0 else 0
         op_order_of_loop = []
-        for li in range(self.n_loops):
+        for li in range(n_eff):
             if self.input_loops > 0 and li >= self.input_loops:
                 # read-heavy phase: target tokens only, apply-only (memory frozen)
                 op_order_of_loop.append(
@@ -420,7 +425,7 @@ class LaCTLVSM(nn.Module):
         loop_renders = []
         frozen_targets = None
         x_prev_loop = None
-        for loop_idx in range(self.n_loops):
+        for loop_idx in range(n_eff):
             if self.target_loops > 0:
                 if loop_idx == 0 and join_loop > 0:
                     frozen_targets = x[:, num_input_tokens:]
@@ -456,7 +461,7 @@ class LaCTLVSM(nn.Module):
                     }
             if x_loop_start is not None:
                 x = x + self.loop_rho[loop_idx] * x_loop_start
-            if loop_idx < self.n_loops - 1 and frozen_targets is None and (return_all_loops or self.render_feedback):
+            if loop_idx < n_eff - 1 and frozen_targets is None and (return_all_loops or self.render_feedback):
                 render_l = self._decode_targets(
                     x[:, -num_target_tokens:], num_target_views, h, w)
                 if return_all_loops:

@@ -134,3 +134,11 @@ EXIT 137 r12_loop_l2x4_geo_s95
 CHAIN_FAIL r12_loop_l2x4_geo_s95: no final checkpoint
 EXIT 0 r12_loop_l2x4_boost_gates_sup_s95
 CHAIN_DONE r12_loop_l2x4_boost_gates_sup_s95 PSNR: 22.364
+EXIT 0 r13_loop_l2x4_attngate_s95
+EXIT 0 r13_loop_l2x4_rotbag_s95
+EXIT 0 r13_loop_l2x4_qkvroute_s95
+CHAIN_DONE r13_loop_l2x4_attngate_s95 PSNR: 22.179
+CHAIN_DONE r13_loop_l2x4_rotbag_s95 PSNR: 21.981
+CHAIN_DONE r13_loop_l2x4_qkvroute_s95 PSNR: 22.107
+EXIT 0 r13_loop_l2x4_nlcond_s95
+CHAIN_DONE r13_loop_l2x4_nlcond_s95 PSNR: 22.145

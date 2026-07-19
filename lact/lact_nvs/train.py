@@ -53,6 +53,13 @@ parser.add_argument("--loop_sup_weight", type=float, default=0.0,
                          "MSE on intermediate loop renders (0 = off). LPIPS stays final-only.")
 parser.add_argument("--loop_sup_gamma", type=float, default=0.5,
                     help="Discount per loop for intermediate render MSE (earlier loops weigh less)")
+parser.add_argument("--distill_weight", type=float, default=0.0,
+                    help="Deep-teacher self-distillation: a no_grad teacher runs "
+                         "n_loops+distill_extra passes (SAME tied weights); the student's "
+                         "final render is pulled toward the teacher's deeper render. Imports "
+                         "the more-loops quality gain at iso-inference-compute. 0 = off.")
+parser.add_argument("--distill_extra", type=int, default=4,
+                    help="Extra loop passes the distillation teacher runs beyond n_loops.")
 parser.add_argument("--seed", type=int, default=95)
 
 args = parser.parse_args()
@@ -197,6 +204,17 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
                 if weights:
                     aux_loss = sum(wt * F.mse_loss(r, target) for wt, r in zip(weights, renders[:-1]))
                     aux_loss = args.loop_sup_weight * aux_loss / sum(weights)
+
+            if args.distill_weight > 0:
+                # Deep-teacher self-distillation: same tied weights, more loop passes,
+                # no grad -> a better (deeper-unroll) target the shallow student learns
+                # to match at its final render. Iso-inference (student stays n_loops).
+                base_model = model.module if hasattr(model, "module") else model
+                n_teacher = base_model.n_loops + args.distill_extra
+                with torch.no_grad():
+                    teacher = model(input_data_dict, target_data_dict,
+                                    n_loops_override=n_teacher)
+                aux_loss = aux_loss + args.distill_weight * F.mse_loss(rendering, teacher.detach())
 
             l2_loss = F.mse_loss(rendering, target)
             psnr = -10.0 * torch.log10(l2_loss).item()
