@@ -1,0 +1,31 @@
+# Spectral coarse-to-fine Muon (agents 8,10): per-loop NS-step schedule {2,4,6,8}
+# (sum 20 = baseline 5x4, iso-FLOPs). Fewer NS steps = top-heavy low-freq update
+# (coarse geometry early); more = whitened high-freq (texture late). NS changes
+# update SHAPE not magnitude -> escapes the dead lr-knob trap. New update-spectrum axis.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      muon_schedule: [2, 4, 6, 8]
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4

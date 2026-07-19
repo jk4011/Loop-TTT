@@ -165,7 +165,10 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r10_loop_l2x4_mom_s95 | cross-loop momentum (heavy-ball) | 창의1 | 22.021 | 0.2929 | **−0.183** | 실패 — momentum 축 사망 |
 | r11_loop_l2x4_pw1_s95 | **precond_w1 (Gauss-Newton/RLS)** | agents 1,10,4 | (진행중) | | | ★flagship |
 | r11_loop_l2x4_cumboost_s95 | **cumulative-residual boost** | agents 9,5,2,6 | (진행중) | | | ★flagship (boost 버그수정) |
-| r11_loop_l2x4_fmom_s95 | feature Anderson/Nesterov | agents 4,6,7 | (진행중) | | | feature-trajectory 축 |
+| r11_loop_l2x4_fmom_s95 | feature Anderson/Nesterov | agents 4,6,7 | 19.719 | 0.3860 | **−2.485** | **붕괴(L2와 동일해로 수렴)** — 외삽이 loop 기여 무효화 |
+| r11_loop_l2x4_c2fmuon_s95 | spectral coarse-to-fine NS steps | agents 8,10 | (진행중) | | | update-spectrum 축 |
+
+**교훈: momentum·feat_mom 둘 다 실패 → loop는 가속/외삽이 아니라 실제 반복을 원한다.**
 | r11_loop_l2x4_epavg_s95 | Polyak iterate averaging | agents 1,2,7 | (진행중) | | | fit 축(ep3 궤도→fit) |
 
 ## Wave 9+ — 직교축 가산 스택 & 창의 메커니즘 (iso-compute)

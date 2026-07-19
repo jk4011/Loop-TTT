@@ -271,9 +271,15 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
-                 momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False, **kwargs):
+                 momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False,
+                 muon_schedule=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.epavg = epavg
+        # Per-loop Newton-Schulz step schedule (coarse-to-fine spectral: fewer NS
+        # steps = top-heavy/low-freq update, more = whitened/high-freq). Keep the
+        # sum equal to baseline for iso-FLOPs. NS changes update SHAPE not magnitude,
+        # so this escapes the dead lr-knob trap. None = fixed muon_update_steps.
+        self.muon_schedule = list(muon_schedule) if muon_schedule is not None else None
         self.read_refine = read_refine  # apply-side re-query strength (0 = off)
         self.momentum = momentum        # cross-loop heavy-ball coefficient (0 = off)
         self.precond_w1 = precond_w1    # Gauss-Newton/RLS Richardson iters on w1 (0 = off)
@@ -370,9 +376,12 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             )
             state = {"m0": m0, "m1": m1, "m2": m2}
         else:
+            muon_steps = self.muon_update_steps
+            if self.muon_schedule is not None:
+                muon_steps = self.muon_schedule[min(info.get("loop_idx", 0), len(self.muon_schedule) - 1)]
             output, w0, w1, w2, r_out = _loop_fast_weight_apply(
                 w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
-                muon_update_steps=self.muon_update_steps,
+                muon_update_steps=muon_steps,
                 update_epochs=self.update_epochs,
                 wp0=wp0, wp1=wp1, wp2=wp2,
                 read_refine=self.read_refine,
