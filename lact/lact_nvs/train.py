@@ -60,6 +60,10 @@ parser.add_argument("--distill_weight", type=float, default=0.0,
                          "the more-loops quality gain at iso-inference-compute. 0 = off.")
 parser.add_argument("--distill_extra", type=int, default=4,
                     help="Extra loop passes the distillation teacher runs beyond n_loops.")
+parser.add_argument("--stoch_depth", type=str, default="",
+                    help="Stochastic loop-count training: comma list of loop counts to "
+                         "sample per step (e.g. '2,3,4,5,6', mean ~= n_loops so train "
+                         "compute stays ~baseline). Eval uses n_loops. Empty = off.")
 parser.add_argument("--seed", type=int, default=95)
 
 args = parser.parse_args()
@@ -193,7 +197,15 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
         with torch.autocast(dtype=torch.bfloat16, device_type="cuda", enabled=True):
             target = target_data_dict["image"]
             use_loop_sup = args.loop_sup_weight > 0
-            rendering = model(input_data_dict, target_data_dict, return_all_loops=use_loop_sup)
+            # Stochastic depth: sample this step's loop count (mean ~= n_loops, so
+            # average train compute stays ~baseline); the tied weights become
+            # depth-robust and the deeper unrolls get real GT gradient.
+            n_over = None
+            if args.stoch_depth:
+                choices = [int(c) for c in args.stoch_depth.split(",")]
+                n_over = choices[torch.randint(len(choices), (1,)).item()]
+            rendering = model(input_data_dict, target_data_dict,
+                              return_all_loops=use_loop_sup, n_loops_override=n_over)
             aux_loss = 0.0
             if use_loop_sup:
                 renders = rendering
