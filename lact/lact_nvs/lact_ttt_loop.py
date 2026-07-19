@@ -146,12 +146,88 @@ def _loop_fast_weight_apply(
     return output, w0, w1, w2
 
 
+@torch.compile
+def _loop_momentum_apply(
+    w0i, w1i, w2i, q, k, v, lr0, lr1, lr2, ttt_ua_order,
+    mp0, mp1, mp2, mu: float,
+    muon_update_steps: int = 0, delta: bool = False,
+):
+    """Cross-loop MOMENTUM (heavy-ball on the fast-weight operator).
+
+    The weights ALWAYS start from the fresh init w*i each loop (no orbiting W),
+    but the pre-Newton-Schulz gradient momentum M carries across loops:
+        M_l  = mu * M_{l-1} + raw_grad_l
+        W_l  = weight_norm( W_init + NS(M_l) )
+    Progress lives in the accumulating direction M, not in the (non-convergent)
+    orbiting weights -- as M's direction stabilizes across loops, W_l converges
+    to a better fit than any single crude step. This restores LaCT's own
+    momentum recipe (App. A Eq. 20) along the loop axis. Returns the updated M.
+    """
+    w0_norm = w0i.detach().norm(dim=1, keepdim=True)
+    w1_norm = w1i.detach().norm(dim=1, keepdim=True)
+    w2_norm = w2i.detach().norm(dim=1, keepdim=True)
+    m0, m1, m2 = mp0, mp1, mp2
+    have_m = mp0 is not None
+
+    output = []
+    for start, end, update, apply in ttt_ua_order:
+        w0_now, w1_now, w2_now = w0i, w1i, w2i
+
+        if update:
+            ki, vi = k[:, start:end, :], v[:, start:end, :]
+            lr0i = lr0[:, start:end, :]
+            lr1i = lr1[:, start:end, :]
+            lr2i = lr2[:, start:end, :]
+
+            gate_before_act = ki @ w0i
+            hidden_before_mul = ki @ w2i
+            hidden = F.silu(gate_before_act, inplace=False) * hidden_before_mul
+
+            if delta:
+                f_k = hidden @ w1i
+                vt = vi - f_k
+            else:
+                vt = vi
+
+            dhidden = vt @ w1i.transpose(-1, -2)
+            dhidden_before_mul = dhidden * F.silu(gate_before_act, inplace=False)
+            dgate = dhidden * hidden_before_mul
+            dgate_before_act = silu_backprop(dgate, gate_before_act)
+
+            g1 = (hidden * lr1i).transpose(-1, -2) @ vt
+            g0 = (ki * lr0i).transpose(-1, -2) @ dgate_before_act
+            g2 = (ki * lr2i).transpose(-1, -2) @ dhidden_before_mul
+
+            m0 = mu * m0 + g0 if have_m else g0
+            m1 = mu * m1 + g1 if have_m else g1
+            m2 = mu * m2 + g2 if have_m else g2
+            have_m = True
+
+            w1_now = w1i + zeropower_via_newtonschulz5(m1, muon_update_steps)
+            w0_now = w0i + zeropower_via_newtonschulz5(m0, muon_update_steps)
+            w2_now = w2i + zeropower_via_newtonschulz5(m2, muon_update_steps)
+
+            w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
+            w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
+            w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
+
+        if apply:
+            qi = q[:, start:end, :]
+            oi = (F.silu(qi @ w0_now, inplace=False) * (qi @ w2_now)) @ w1_now
+            output.append(oi)
+
+    output = torch.cat(output, dim=1)
+    return output, m0, m1, m2
+
+
 class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
-                 update_epochs=1, per_loop_init=False, read_refine=0.0, **kwargs):
+                 update_epochs=1, per_loop_init=False, read_refine=0.0,
+                 momentum=0.0, **kwargs):
         super().__init__(*args, **kwargs)
         self.read_refine = read_refine  # apply-side re-query strength (0 = off)
+        self.momentum = momentum        # cross-loop heavy-ball coefficient (0 = off)
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
         known = {"lrs", "rho", "rho2", "delta", "boost"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
@@ -232,16 +308,28 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             w1 = self.w1.repeat(x.shape[0], 1, 1)
             w2 = self.w2.repeat(x.shape[0], 1, 1)
 
-        output, w0, w1, w2 = _loop_fast_weight_apply(
-            w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
-            muon_update_steps=self.muon_update_steps,
-            update_epochs=self.update_epochs,
-            wp0=wp0, wp1=wp1, wp2=wp2,
-            read_refine=self.read_refine,
-            rho_gate="rho" in self.loop_flags,
-            rho_post="rho2" in self.loop_flags,
-            delta="delta" in self.loop_flags,
-        )
+        if self.momentum > 0.0:
+            # Cross-loop heavy-ball: weights reset to fresh init (w0/w1/w2 above),
+            # momentum M carried via info["m0/1/2"].
+            output, m0, m1, m2 = _loop_momentum_apply(
+                w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
+                info.get("m0", None), info.get("m1", None), info.get("m2", None),
+                self.momentum, muon_update_steps=self.muon_update_steps,
+                delta="delta" in self.loop_flags,
+            )
+            state = {"m0": m0, "m1": m1, "m2": m2}
+        else:
+            output, w0, w1, w2 = _loop_fast_weight_apply(
+                w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
+                muon_update_steps=self.muon_update_steps,
+                update_epochs=self.update_epochs,
+                wp0=wp0, wp1=wp1, wp2=wp2,
+                read_refine=self.read_refine,
+                rho_gate="rho" in self.loop_flags,
+                rho_post="rho2" in self.loop_flags,
+                delta="delta" in self.loop_flags,
+            )
+            state = {"w0": w0, "w1": w1, "w2": w2}
 
         output = self.o_norm(output)
         output = rearrange(
@@ -249,7 +337,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         )
 
         output = self.c_proj(output)
-        return output, {"w0": w0, "w1": w1, "w2": w2}
+        return output, state
 
     def extra_repr(self) -> str:
         return super().extra_repr() + f"loop_mode: {sorted(self.loop_flags)}, "

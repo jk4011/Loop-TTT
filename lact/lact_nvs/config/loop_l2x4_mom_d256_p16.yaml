@@ -1,0 +1,33 @@
+# Cross-loop MOMENTUM (heavy-ball on the fast-weight operator). Weights reset to
+# fresh init each loop (no orbit); the pre-NS gradient momentum M carries across
+# loops (mu=0.9): W_l = weight_norm(W_init + NS(M_l)). Progress lives in the
+# accumulating direction M -> the non-convergent orbit becomes convergence.
+# Restores LaCT App.A Eq.20 along the loop axis. 0 params, ~0 extra FLOPs.
+# carry state mode threads M (m0/m1/m2), NOT the weights.
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: carry
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      momentum: 0.9
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
