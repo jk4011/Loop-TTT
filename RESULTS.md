@@ -147,7 +147,8 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r8_loop_l2x4_ep3_s95 | inner epochs=3 | 3.96 | 22.197 | 0.2834 | −0.007 | ep2보다 나쁨 — **fit축 sweet spot=ep2** (3스텝은 포화/overfit) |
 | r7_loop_l2x4_boost_sup_s95 | boost + sup | | (진행중) | | | |
 | r7_loop_l2x4_ep2_sup_s95 | **ep2 + sup (직교축)** | ~4.2 | **22.358** | **0.2829** | **+0.154** | **거의 완전 가산!** (0.077+0.083=0.160) — orthogonal 스택이 핵심 |
-| r8_loop_l2x4_boost_ep2_sup_s95 | boost+ep2+sup (총동원) | | (진행중) | | | 스택 상한 확인 |
+| r8_loop_l2x4_boost_ep2_sup_s95 | boost+ep2+sup (총동원) | ~4.2 | 22.349 | 0.2845 | +0.145 | ep2+sup(+0.154)보다 나쁨 — **boost는 ep2/sup과 같은 계열, 직교 아님** |
+| r9_loop_l2x4_rr_s95 | read-side refinement (apply축) | ~4.2 | (진행중) | | | 미탐색 축 — 직교면 스택 가치 |
 | r7_loop_l2x4_boost_sup_s95 | boost + sup | ~4.4 | 22.321 | 0.2880 | +0.117 | sup(+0.083) 위 boost +0.034 — 강한 sub-additive (같은 축) |
 | r8_loop_l2x4_boost_ep2_s95 | boost + ep2 (용량×fit) | ~4.3 | 22.333 | 0.2840 | +0.130 | 부분 겹침 (둘 다 메모리-fit) |
 | r9_loop_l2x4_ep2_pli_sup_s95 | ep2+pli+sup (3직교축) | | (진행중) | | | fit×메모리파라미터×loss |
