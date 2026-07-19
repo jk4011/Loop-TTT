@@ -272,9 +272,19 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
                  momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False,
-                 muon_schedule=None, **kwargs):
+                 muon_schedule=None, key_center=0.0, loop_temp=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.epavg = epavg
+        self.key_center = key_center  # >0 enables DC-decorrelation of keys
+        if key_center > 0.0:
+            self.key_center_gate = nn.Parameter(torch.zeros(1))  # zero-init = baseline
+        # loop_temp: per-loop learned q/k temperature. silu(tau*x@w0) changes the
+        # gate PATTERN (not just magnitude), so this reshapes the stored+read
+        # function per loop -> bandwidth/scale-space axis that escapes the lr-trap.
+        self.loop_temp = loop_temp
+        if loop_temp:
+            inv_sp1 = 1.0 + math.log(-math.expm1(-1.0))  # inv_softplus(1) -> tau=1
+            self.loop_temp_raw = nn.Parameter(torch.full((n_loops_max,), inv_sp1))
         # Per-loop Newton-Schulz step schedule (coarse-to-fine spectral: fewer NS
         # steps = top-heavy/low-freq update, more = whitened/high-freq). Keep the
         # sum equal to baseline for iso-FLOPs. NS changes update SHAPE not magnitude,
@@ -320,6 +330,19 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         )
         q = q / (q.norm(dim=2, keepdim=True) + 1e-5).to(x.dtype)
         k = k / (k.norm(dim=2, keepdim=True) + 1e-5).to(x.dtype)
+
+        if self.key_center > 0.0:
+            # DC decorrelation: remove the common-mode of the keys so patches that
+            # share a huge common component (sky/walls) stop colliding in the
+            # associative memory -> raises the usable rank of a single instance.
+            kc = self.key_center_gate * k.mean(dim=1, keepdim=True)
+            k = k - kc
+            k = k / (k.norm(dim=2, keepdim=True) + 1e-5)
+
+        if self.loop_temp:
+            tau = F.softplus(self.loop_temp_raw[min(info.get("loop_idx", 0), self.n_loops_max - 1)])
+            q = q * tau
+            k = k * tau
 
         with torch.autocast(device_type="cuda", enabled=False):
             lr = self.lr_fc(x.float())  # [b, l, 3 * lr_dim]
