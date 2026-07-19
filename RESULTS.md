@@ -147,7 +147,9 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r8_loop_l2x4_ep3_s95 | inner epochs=3 | ~4.1 | (진행중) | | | epoch 스케일링 확인 |
 | r7_loop_l2x4_boost_sup_s95 | boost + sup | | (진행중) | | | |
 | r7_loop_l2x4_ep2_sup_s95 | ep2 + sup | | (진행중) | | | |
+| r7_loop_l2x4_boost_sup_s95 | boost + sup | ~4.4 | 22.321 | 0.2880 | +0.117 | sup(+0.083) 위 boost +0.034 — 강한 sub-additive (같은 축) |
 | r8_loop_l2x4_boost_ep2_s95 | boost + ep2 (용량×fit) | | (진행중) | | | 두 물리 메커니즘 직교 스택 |
+| r8_loop_l2x4_pli_s95 | **per-loop 학습 init (7.0M)** | ~4.55 (동일) | (진행중) | | | 메모리공간에 파라미터 추가 (binding 직격, 0 FLOPs) |
 
 - **boost가 핵심 발견**: fast weight는 활성값이므로 loop가 시간축으로 메모리 인스턴스를 여러 개
   만들고, 각자 이전 loop의 잔차만 담당 → 동일 arch·동일 속도로 +0.10. delta/gates(+0.03~0.04)의

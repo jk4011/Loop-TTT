@@ -84,3 +84,5 @@ EXIT 0 r7_loop_l2x4_boost_s95
 CHAIN_DONE r7_loop_l2x4_boost_s95 PSNR: 22.303
 EXIT 0 r7_loop_l2x4_ep2_s95
 CHAIN_DONE r7_loop_l2x4_ep2_s95 PSNR: 22.281
+EXIT 0 r7_loop_l2x4_boost_sup_s95
+CHAIN_DONE r7_loop_l2x4_boost_sup_s95 PSNR: 22.321

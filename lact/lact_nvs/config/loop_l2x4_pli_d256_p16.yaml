@@ -1,0 +1,32 @@
+# TTT-loop physics: per-loop fast-weight INIT. The shared self.w0 init must serve
+# as the starting memory for every loop position (a compromise across depths).
+# Give each of the 4 loop positions its OWN learned init in memory space -- adds
+# parameters exactly where the model is capacity-bound (halving TTT hidden cost
+# -0.84), at 0 extra FLOPs. Reset mode (each pass inits from its position's w0_l).
+patch_size: 16
+dim: 256
+layers: 2
+n_loops: 4
+ttt_state_mode: reset
+input_injection: none
+
+block_config:
+  - type: model.SelfAttention
+    length_dim: l
+    params:
+      head_dim: 64
+      use_qk_norm: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      per_loop_init: true
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4

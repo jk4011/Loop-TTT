@@ -141,7 +141,7 @@ def _loop_fast_weight_apply(
 class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def __init__(self, *args, loop_mode="none", n_loops_max=8,
-                 update_epochs=1, **kwargs):
+                 update_epochs=1, per_loop_init=False, **kwargs):
         super().__init__(*args, **kwargs)
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
         known = {"lrs", "rho", "rho2", "delta", "boost"}
@@ -153,6 +153,23 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         if "lrs" in flags:
             # One bias per (loop, lr-slot); zero-init = baseline schedule.
             self.loop_lr_bias = nn.Parameter(torch.zeros(n_loops_max, 3))
+
+        # per_loop_init: give each loop POSITION its own learned fast-weight init,
+        # instead of one shared self.w0 that must compromise across all loop depths.
+        # Adds parameters in the MEMORY space (the binding resource), 0 extra FLOPs.
+        # Reset mode only (each pass inits from its own w0_l).
+        # Loop 0 reuses the base self.w0/w1/w2; positions 1..n_loops_max-1 get
+        # their own extra inits (so self.w0 stays used -> no DDP unused-param error).
+        self.per_loop_init = per_loop_init
+        if per_loop_init and n_loops_max > 1:
+            g = math.sqrt(2)
+            d_in = d_out = self.w0.shape[1]
+            d_h = self.w0.shape[2]
+            nh = self.num_heads
+            extra = n_loops_max - 1
+            self.w0_loop = nn.Parameter(torch.randn(extra, nh, d_in, d_h) * g / math.sqrt(d_in))
+            self.w1_loop = nn.Parameter(torch.randn(extra, nh, d_h, d_out) * g / math.sqrt(d_h))
+            self.w2_loop = nn.Parameter(torch.randn(extra, nh, d_in, d_h) * g / math.sqrt(d_in))
 
     def forward(self, x: torch.Tensor, info={}, *args):
         qkv = F.silu(self.to_qkv(x), inplace=True)
@@ -191,6 +208,16 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         elif "w0" in info:
             assert "w1" in info and "w2" in info
             w0, w1, w2 = info["w0"], info["w1"], info["w2"]
+        elif self.per_loop_init:
+            li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
+            if li == 0:
+                w0 = self.w0.repeat(x.shape[0], 1, 1)
+                w1 = self.w1.repeat(x.shape[0], 1, 1)
+                w2 = self.w2.repeat(x.shape[0], 1, 1)
+            else:
+                w0 = self.w0_loop[li - 1].repeat(x.shape[0], 1, 1)
+                w1 = self.w1_loop[li - 1].repeat(x.shape[0], 1, 1)
+                w2 = self.w2_loop[li - 1].repeat(x.shape[0], 1, 1)
         else:
             w0 = self.w0.repeat(x.shape[0], 1, 1)
             w1 = self.w1.repeat(x.shape[0], 1, 1)
