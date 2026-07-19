@@ -165,7 +165,7 @@ width(정점 +0.13) > NS steps(−0.34) > TTT용량(−0.84). **어떤 자원도
 | r7_loop_l2x4_ep2_sup_s95 | ep2+sup (fit×loss) | 22.358 | 0.2829 | +0.154 | 직교 가산 |
 | r9_loop_l2x4_ep2_gates_sup_s95 | **ep2+sup+gates (fit×loss×조건화)** | **22.390** | **0.2809** | **+0.187 (t=14.7)** | **현재 iso 최고** — gates +0.033 추가(직교) |
 | r10_loop_l2x4_mom_s95 | cross-loop momentum (창의 flagship) | (진행중) | | | inner-optimizer 축 — 궤도→수렴 |
-| r9_loop_l2x4_rr_s95 | read-side refinement (apply축) | (진행중) | | | |
+| r9_loop_l2x4_rr_s95 | read-side refinement (apply축) | 22.197 | 0.2871 | −0.006 | **중립 — apply 축 무효** (고정 0.15) |
 
 - **직교축 가산 법칙 재확인**: ep2(fit)+sup(loss)+gates(조건화) 각 축이 거의 완전 가산 → +0.187.
   남은 미탐색 직교축: inner-optimizer(momentum), apply(read_refine). 각각 positive면 계속 누적.
