@@ -146,3 +146,11 @@ EXIT 0 r14_loop_l2x4_distill_s95
 CHAIN_DONE r14_loop_l2x4_distill_s95 PSNR: 21.485
 EXIT 0 r14_loop_l2x4_stochdepth_s95
 CHAIN_DONE r14_loop_l2x4_stochdepth_s95 PSNR: 21.828
+EXIT 0 r15_loop_l2x4_fusedreadout_s95
+CHAIN_DONE r15_loop_l2x4_fusedreadout_s95 PSNR: 22.239
+EXIT 0 r15_loop_l2x4_droploop_s95
+CHAIN_DONE r15_loop_l2x4_droploop_s95 PSNR: 22.115
+EXIT 0 r15_loop_l2x4_streamnorm_s95
+CHAIN_DONE r15_loop_l2x4_streamnorm_s95 PSNR: 22.183
+EXIT 0 r15_loop_l2x4_kd6sup_s95
+CHAIN_DONE r15_loop_l2x4_kd6sup_s95 PSNR: 22.347

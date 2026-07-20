@@ -247,3 +247,13 @@ cumboost −1.52, epavg −0.01, c2f_muon −0.15). → **확정 단순 축(ep2/
 ### ★ 중대 부정 발견: "more-loops +0.44~0.58"은 추론비용에 묶여 있어 iso-inference로 못 가져온다.
 distill(bad teacher)/stochdepth(희석) 둘 다 사망. 깊이별 dedicated 모델에서만 이득. 확정 최고 iso = ep2+sup+gates +0.283.
 실행중(마지막 미시도 직교축): streamnorm, fusedreadout, droploop.
+
+## ★★ Cross-model KD 돌파구 (2026-07-20) — more-loops 이득을 iso-inference로 가져온 첫 성공
+| exp | teacher | PSNR | LPIPS | vs naive(s95) | 판정 |
+|---|---|---|---|---|---|
+| r15_loop_l2x4_kd6sup_s95 | L2×6+sup (22.781) | 22.347 | 0.2858 | **+0.143** | KD 단독 성공 (self-distill 실패와 대조) |
+
+- self-distillation/stoch-depth는 teacher가 student 자기 weight를 깊게 돌려 붕괴 → 실패.
+  **cross-model KD**는 별도 잘 훈련된 deep teacher라 성공. teacher 22.781의 +0.58 중 student가 +0.143 흡수(25%).
+- 추론 엄격 iso(student 4loop), teacher는 train-only frozen. **새 직교축(teacher-matching).**
+- 강화 경로: (1) ep2+sup+gates+KD 스택(실행중), (2) 더 깊은/강한 teacher(L2×10+sup), (3) feature/LPIPS-space KD.
