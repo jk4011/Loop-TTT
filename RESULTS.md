@@ -393,3 +393,21 @@ s95는 seed 운. 방향은 3-seed 일관 양수(실재)나 크기는 절반. boo
 → plain boost가 국소 최적이며 그 최적값이 +0.05.
 TTT×loop write/read/partition/feedback 축 사실상 소진. 남은 미시도: transductive-write(읽을 분포에
 쓰기), misfit-echo(잔차→stream 주입), decorloss(train-only). + probe-memory-overlap(다양성 headroom 판정).
+
+### Wave 18 3차 (2026-07-21)
+
+| exp | PSNR | vs naive(동seed) | 판정 |
+|---|---|---|---|
+| r18_transwrite (target 토큰에도 write) | 22.005 | −0.199 | 실패 (self-echo) |
+| r18_echo (잔차 stream 주입) | 22.089 | −0.115 | 실패 |
+| r18_bgs_s96 (boost+gates+sup) | 22.187 | +0.099 | ✓ |
+| r18_bgs_s97 | 22.249 | +0.189 | ✓ |
+
+**boost+gates+sup 3-seed 확정 = +0.149** (s95 +0.160 / s96 +0.099 / s97 +0.189, t≥11).
+ep2/KD 제외 제약 하의 확정 최고 스택. TTT×loop 고유 성분(boost)의 축 기여 +0.05,
+generic 성분(gates/sup) +0.10.
+
+**TTT×loop 고유 축 총결산 (라운드 2+4, ~300 아이디어, 30+ 런):**
+생존 = boost(+0.050 3-seed) 단 하나. 변형 6종(slice/proj/detach/ensread/multi/gain) 전멸,
+신물리 2종(transwrite/echo) 전멸, carry/momentum/partition/addressing/schedule 전멸.
+boost의 필수 성분 완전 규명: fresh full-width + full 잔차 + live gradient (셋 다 건드리면 악화).
