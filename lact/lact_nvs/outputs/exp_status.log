@@ -184,3 +184,13 @@ EXIT 0 r18_boostgain_s95
 CHAIN_DONE r18_boostgain_s95 PSNR: 22.211
 EXIT 0 r18_multiboost_s95
 CHAIN_DONE r18_multiboost_s95 PSNR: 22.269
+EXIT 0 r18_echo_s95
+CHAIN_DONE r18_echo_s95 PSNR: 22.089
+EXIT 0 r18_transwrite_s95
+CHAIN_DONE r18_transwrite_s95 PSNR: 22.005
+EXIT 0 r18_bgs_s96
+EXIT 0 r18_bgs_s97
+CHAIN_DONE r18_bgs_s96 PSNR: 22.187
+CHAIN_DONE r18_bgs_s97 PSNR: 22.249
+EXIT 1 r19_bgs_film_optzone_s95
+CHAIN_FAIL r19_bgs_film_optzone_s95: no final checkpoint
