@@ -378,3 +378,18 @@ slice-boost it/s 9.3 (naive 4.55보다 빠름 — NS가 d_h/4 slice에 → updat
 4. **read측 앙상블은 잉여**: ensread ≈ boost. residual stream이 이미 이전 메모리 기여를 운반.
 → plain boost(fresh full-width + 잔차 target + live gradient)가 국소 최적점으로 강건.
 남은 미시도: multiboost(모든 이전 합의 잔차), boost-gain(state feedback), decorloss(train-only).
+
+### Wave 18 2차 + boost seed 검증 (2026-07-20)
+
+| exp | PSNR | vs naive(동seed) | 판정 |
+|---|---|---|---|
+| r18_multiboost (모든 이전 합 빼기) | 22.269 | +0.065 | boost 하회 |
+| r18_boostgain (misfit-gated 빼기) | 22.211 | +0.007 | 무효 |
+| r18_boost_s96 | 22.112 | +0.024 (t=2.8) | ⚠️ |
+| r18_boost_s97 | 22.088 | +0.028 (t=4.6) | ⚠️ |
+
+**중대: boost 3-seed 확정 = +0.050** (s95 +0.099 / s96 +0.024 / s97 +0.028).
+s95는 seed 운. 방향은 3-seed 일관 양수(실재)나 크기는 절반. boost 계열 6개 변형 전부 boost 하회
+→ plain boost가 국소 최적이며 그 최적값이 +0.05.
+TTT×loop write/read/partition/feedback 축 사실상 소진. 남은 미시도: transductive-write(읽을 분포에
+쓰기), misfit-echo(잔차→stream 주입), decorloss(train-only). + probe-memory-overlap(다양성 headroom 판정).
