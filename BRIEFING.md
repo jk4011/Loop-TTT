@@ -141,3 +141,44 @@ semantics?" test (those are rejected).
 ## Confirmed task-agnostic winners to STACK onto (orthogonal axes add):
 fit (ep2) · loss (sup, = per-loop deep supervision) · conditioning (gates) · capacity (boost).
 Target: find 2-3 more orthogonal task-agnostic axes, each ~+0.05–0.1, to reach +0.5.
+
+## ADDENDUM 3 (2026-07-20) — after 100-idea round 2 (waves 11–15). GOAL RAISED TO +1.0 dB.
+
+New target: **+1.0 dB over naive loop (22.204 s95 / 22.117 3-seed) at ~iso compute for BOTH
+training AND inference.** Confirmed stack so far: ep2+sup+gates = +0.283 (3-seed).
+
+Round-2 results (all s95 paired vs naive 22.204 unless noted):
+- **KD BREAKTHROUGH (the one new positive):** train-time cross-model knowledge distillation.
+  A frozen, separately-trained DEEPER looped teacher (L2×6+sup, 22.781) supervises the L2×4
+  student's rendering via MSE (weight 1.0). KD alone +0.143; stacked on ep2+sup+gates
+  **+0.297 (s95)**, i.e. KD adds ~+0.11 on top of the stack, nearly orthogonally. Inference
+  strictly iso (student unchanged); costs a one-time teacher train + ~frozen fwd per step.
+  This is currently the ONLY mechanism that imports any of the "more-loops" gain.
+- **More-loops gain exists but is compute-bound:** L2×6+sup = +0.578 at 1.5× inference.
+  Self-distill (student's own deeper unroll as teacher) COLLAPSES (extrapolation off the
+  training loop-count fails). Stochastic loop-count training: fails (−0.1 to −0.3, hurts the
+  4-loop operating point). Only cross-model KD transfers any of it.
+- **Last orthogonal-axis candidates all NULL:** per-loop stream RMS-renorm (−0.02), fused
+  softmax readout over per-loop target feats (+0.035), train-time loop dropout (−0.09).
+  LT2 SDPA output gate: ~0. QKV LoRA per-loop routing: ~0. Per-loop random orthogonal
+  rotation of k/q (rot_bag): −0.15. NL-Cond gate bias: ~0.
+- Axis census after ~200 ideas: fit(ep2)/loss(sup)/cond(gates)/capacity(boost)/KD(train-loss)
+  are the only positive axes found. Everything on optimization-, schedule-, readout-,
+  addressing-, extrapolation-axes is dead or null at this scale.
+
+## WHAT ROUND 3 MUST DO DIFFERENTLY
++0.283 (stack) + ~+0.11 (KD) ≈ +0.39 confirmed; we need **≥ +0.6 more**. Incremental
+single-axis tweaks measured so far give ≤+0.1 each and the known-axis pool is exhausted.
+So round 3 asks for **fundamentally different mechanisms**, e.g. (non-exhaustive, think freely):
+- Ways to make a WEIGHT-TIED loop behave like a much DEEPER net (the L2×6/L2×8 gain, +0.6~,
+  is the prize — how can iso-inference computation emulate it? KD is one; find others).
+- Mechanisms exploiting the TTT fast-weight STATE across loops in ways not yet tried
+  (we tried carry/momentum/boost/cumboost/read-refine; boost alone was positive).
+- Train-time-only structure (loss shaping, curricula, auxiliary tasks, distillation variants
+  — inference stays identical; this family contains the only recent winner).
+- Changing WHAT each pass computes (input/target routing, chunking across loops, token
+  subset scheduling) — but note all naive schedule surgery failed; needs a new principle.
+- Anything task-agnostic that makes pass ℓ's computation CONDITIONAL on pass ℓ−1's OUTPUT
+  in a nonlinear, learnable way (the loop's value = genuine iterative refinement).
+Hard filters unchanged: task-agnostic (no camera/geometry), ~iso train & inference FLOPs
+(≤~1.1×), minimal (one-sentence explainable), prefer TTT-state × loop synergy.
