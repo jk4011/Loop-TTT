@@ -311,3 +311,7 @@ ep2+sup+gates 단독(+0.283 3-seed)에서 **KD가 +0.087 추가** (거의 직교
 Trajectory/waypoint KD 사망: student 4-loop 경로 ≠ teacher 6-loop 경로, 과잉 제약.
 교훈: KD는 endpoint만으로 충분; 중간 waypoint 매칭은 도움 안 됨.
 남은 KD 레버는 **teacher 품질**(kd8 진행 중)과 **weight-space warm-start**(warm6_kd 진행 중).
+
+### EMA (outer-weight, decay 0.9995) — kdtraj run, s95
+non-EMA 22.486 → EMA 22.483 (−0.004) = **무효**. Cosine-to-zero lr 꼬리가 이미 iterate 평균화.
+EMA 축 접음 (agent-7이 예측한 null).
