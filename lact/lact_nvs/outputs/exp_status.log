@@ -216,3 +216,11 @@ EXIT 0 r19_bgsfon_s97
 CHAIN_DONE r19_bgsfon_s97 PSNR: 22.454
 EXIT 0 r19_bgsfon_qkvr_s95
 CHAIN_DONE r19_bgsfon_qkvr_s95 PSNR: 22.638
+EXIT 0 r19_bgsfon_lr16_s96
+EXIT 0 r19_bgsfon_lr32_s95
+CHAIN_DONE r19_bgsfon_lr16_s96 PSNR: 22.642
+CHAIN_DONE r19_bgsfon_lr32_s95 PSNR: 22.870
+EXIT 0 r19_bgsfon_lr16_s97
+CHAIN_DONE r19_bgsfon_lr16_s97 PSNR: 22.597
+EXIT 0 r19_bgsfon_qkvr_lr16_s95
+CHAIN_DONE r19_bgsfon_qkvr_lr16_s95 PSNR: 22.729
