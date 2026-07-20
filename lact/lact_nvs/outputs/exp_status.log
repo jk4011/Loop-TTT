@@ -194,3 +194,9 @@ CHAIN_DONE r18_bgs_s96 PSNR: 22.187
 CHAIN_DONE r18_bgs_s97 PSNR: 22.249
 EXIT 1 r19_bgs_film_optzone_s95
 CHAIN_FAIL r19_bgs_film_optzone_s95: no final checkpoint
+EXIT 0 r19_bgs_optzone_s95
+CHAIN_DONE r19_bgs_optzone_s95 PSNR: 22.412
+EXIT 0 r19_gates_sup_s95
+CHAIN_DONE r19_gates_sup_s95 PSNR: 22.310
+EXIT 0 r19_bgs_film_optzone_s95
+CHAIN_DONE r19_bgs_film_optzone_s95 PSNR: 22.602

@@ -423,3 +423,18 @@ boost의 필수 성분 완전 규명: fresh full-width + full 잔차 + live grad
 소규모 cross-view 라우팅 신호로 동작. write-target 공학(boost 계열 전부)은 **~2% 크기의 레버**를
 조작한 것 → wave-18 전 변형이 ±0.05 안에 몰린 이유의 정량적 설명.
 → TTT×loop write측 개선의 구조적 상한 ≈ ±0.1dB. (논문 발견: "왜 looped-TTT 이득이 캡되는가")
+
+### Wave 19 — optzone이 film을 부활시킴: 허용 스택 돌파 (2026-07-21, s95)
+
+| exp | PSNR | LPIPS | vs naive | 한계 기여 |
+|---|---|---|---|---|
+| r19_gates_sup (attribution) | 22.310 | 0.2873 | +0.106 | — |
+| (r12) bgs = boost+gates+sup | 22.364 | 0.2871 | +0.160 | boost +0.054 |
+| r19_bgs_optzone | 22.412 | 0.2834 | +0.208 | optzone +0.048 |
+| **r19_bgs_film_optzone** | **22.602** | **0.2770** | **+0.399** | **film(+optzone) +0.191** |
+
+**발견**: loop_film은 원래 무효로 측정됐으나 그 원인이 **weight-decay가 per-loop 파라미터를
+identity로 끌어내리는 결함**이었음(agent-7 발견). optzone(wd=0, lr×8)으로 수정하자 film이
++0.19를 냄. LPIPS도 0.2770 (naive 0.2877 대비 −0.0107, 역대 최고).
+ep2/KD 없이 허용 성분만으로 +0.399 (s95) — 이전 허용 최고(+0.160)의 2.5배.
+검증 중: bgsfo 3-seed(s96/s97), gfso(boost 제외 attribution), +nl_cond(같은 억압 수정 후보).
