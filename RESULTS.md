@@ -315,3 +315,22 @@ Trajectory/waypoint KD 사망: student 4-loop 경로 ≠ teacher 6-loop 경로, 
 ### EMA (outer-weight, decay 0.9995) — kdtraj run, s95
 non-EMA 22.486 → EMA 22.483 (−0.004) = **무효**. Cosine-to-zero lr 꼬리가 이미 iterate 평균화.
 EMA 축 접음 (agent-7이 예측한 null).
+
+### 궤적 프로브 — +0.578의 정체 규명 (2026-07-20, 128 scenes, per-loop render)
+
+| model | loop별 PSNR | 최종 LPIPS |
+|---|---|---|
+| ×4 sup | 18.44 / 21.15 / 22.08 / **22.13** | 0.287 |
+| ×6 sup | 16.84 / 19.81 / 21.49 / 22.23 / 22.59 / **22.62** | 0.271 |
+| ×8 sup | 15.23 / 18.12 / 20.14 / 21.41 / 22.07 / 22.50 / 22.85 / **22.85** | 0.263 |
+
+**결론 (H1 궤적 재배속 확정):**
+- ×6의 loop-4는 PSNR 22.23(≈×4 최종 22.13)이지만 LPIPS 0.420 vs 0.287 — **훨씬 덜 수렴**.
+  ×6은 지각 정제를 loop 5-6로 미뤄 궤적을 늘림 → "더 나은 loop-4 함수"가 아니라 **늘어난 궤적**.
+- 모든 모델 매 loop 단조 개선(orbit 없음), 진짜 반복. depth gain이 **불균형하게 지각적(LPIPS)**:
+  0.287→0.271→0.263. PSNR 포화 후에도 LPIPS 계속 하락 = 후반 loop = 지각 디테일 합성기.
+
+**라우팅 함의:**
+1. kdtraj 무효 설명됨: student는 자기 4단계에 배속해야 함 (teacher 6단계 waypoint 강요 X).
+2. **LPIPS-space KD 우선** (진행: r17_ep2gs_kd6_lpips): MSE-KD는 PSNR만, 지각 격차 놓침.
+3. iso-FLOP로 loop 수 늘리기(micropass 등)가 원리적 레버 — 한계 loop이 진짜 가치 추가 확인.

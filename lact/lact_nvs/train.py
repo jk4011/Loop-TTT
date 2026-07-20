@@ -77,6 +77,11 @@ parser.add_argument("--kd_traj", type=str, default="",
                          "toward the mapped teacher loop renders. Requires --kd_teacher.")
 parser.add_argument("--kd_traj_weight", type=float, default=0.3,
                     help="Weight of the trajectory-KD waypoint MSE terms")
+parser.add_argument("--kd_lpips_weight", type=float, default=0.0,
+                    help="Perceptual (LPIPS) KD: pull student render toward teacher render in "
+                         "VGG feature space. The x6/x8 teacher edge is disproportionately "
+                         "perceptual (probe: LPIPS 0.287->0.271->0.263), which MSE-KD misses. "
+                         "Gated on lpips_start like the main LPIPS loss. Requires --kd_teacher.")
 parser.add_argument("--init_from", type=str, default="",
                     help="Warm-start: load model WEIGHTS ONLY from this checkpoint (fresh "
                          "optimizer/schedule); ignored when auto-resuming from outputs/<exp>")
@@ -291,6 +296,11 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
                                   for i in range(len(renders) - 1) if i < len(traj_map)]
                     if traj_terms:
                         aux_loss = aux_loss + args.kd_traj_weight * sum(traj_terms) / len(traj_terms)
+                if args.kd_lpips_weight > 0 and now_iters >= args.lpips_start:
+                    kd_lp = lpips_loss_module(rendering.flatten(0, 1),
+                                              t_render.detach().flatten(0, 1),
+                                              normalize=True).mean()
+                    aux_loss = aux_loss + args.kd_lpips_weight * kd_lp
 
             if args.distill_weight > 0:
                 # Deep-teacher self-distillation: same tied weights, more loop passes,
