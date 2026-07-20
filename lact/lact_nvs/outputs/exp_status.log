@@ -166,3 +166,21 @@ EXIT 0 r17_ep2gs_kdtraj_s95
 CHAIN_DONE r17_ep2gs_kdtraj_s95 PSNR: 22.486
 EXIT 0 r17_ep2gs_kd8_s95
 CHAIN_DONE r17_ep2gs_kd8_s95 PSNR: 22.212
+EXIT 0 r17_anneal654_s95
+CHAIN_DONE r17_anneal654_s95 PSNR: 22.140
+EXIT 0 r18_slice_boost_s95
+CHAIN_DONE r18_slice_boost_s95 PSNR: 20.930
+EXIT 0 r18_detach_boost_s95
+CHAIN_DONE r18_detach_boost_s95 PSNR: 22.236
+EXIT 0 r18_ensread_s95
+EXIT 0 r18_proj_boost_s95
+CHAIN_DONE r18_ensread_s95 PSNR: 22.287
+CHAIN_DONE r18_proj_boost_s95 PSNR: 22.061
+EXIT 0 r18_boost_s96
+EXIT 0 r18_boost_s97
+CHAIN_DONE r18_boost_s96 PSNR: 22.112
+CHAIN_DONE r18_boost_s97 PSNR: 22.088
+EXIT 0 r18_boostgain_s95
+CHAIN_DONE r18_boostgain_s95 PSNR: 22.211
+EXIT 0 r18_multiboost_s95
+CHAIN_DONE r18_multiboost_s95 PSNR: 22.269

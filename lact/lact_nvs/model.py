@@ -220,7 +220,8 @@ class LaCTLVSM(nn.Module):
                  loop_film=False, view_schedule="all", update_chunks=1,
                  render_feedback=False, target_loops=0, loop_gates=False,
                  input_loops=0, feat_mom=False, geo_addr=False,
-                 stream_norm=False, fused_readout=False, drop_loop=0.0):
+                 stream_norm=False, fused_readout=False, drop_loop=0.0,
+                 transductive_write=False):
         """
         Looped-TTT extension of LaCT LVSM.
 
@@ -248,6 +249,12 @@ class LaCTLVSM(nn.Module):
         # SfM-style); apply still covers all tokens. Update FLOPs drop n_loops x.
         # Pair with ttt_state_mode=carry so registrations accumulate.
         self.view_schedule = view_schedule
+        # transductive_write: on the FINAL loop pass, additionally update the memory
+        # from the TARGET tokens' own (k,v) before the apply — the memory is fit on
+        # input keys but probed on target queries (covariate shift); writing on the
+        # read distribution is complementary work no input write does. ~+8% FLOPs
+        # (one extra update segment on one loop).
+        self.transductive_write = transductive_write
         # update_chunks=K: split each pass's update into K sequential view-chunk
         # steps (rotated by loop index) — K preconditioned steps per pass instead
         # of one large-chunk step. Token FLOPs unchanged; NS cost xK, so pair
@@ -351,6 +358,12 @@ class LaCTLVSM(nn.Module):
             ) for s in starts[rot:] + starts[:rot]]
         else:
             update_ops = [TTTOperator(start=0, end=num_input_tokens, update=True, apply=False)]
+        if (self.transductive_write and apply_end > num_input_tokens
+                and loop_idx == self.n_loops - 1):
+            # final pass: also write from the target tokens' own (k,v) so the memory
+            # is refreshed on the exact distribution it is about to be read on.
+            update_ops = update_ops + [TTTOperator(
+                start=num_input_tokens, end=apply_end, update=True, apply=False)]
         return update_ops + [TTTOperator(start=0, end=apply_end, update=False, apply=True)]
 
     def forward(self, input_data_dict, target_data_dict, return_all_loops=False,
@@ -474,11 +487,11 @@ class LaCTLVSM(nn.Module):
                 x, result = block(x, block_info)
                 if self.ttt_state_mode == "carry":
                     block_states[block_idx] = {
-                        key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2", "r") if key in result
+                        key: result[key] for key in ("w0", "w1", "w2", "w0h", "w1h", "w2h", "m0", "m1", "m2", "r") if key in result
                     }
                 if self.input_loops > 0 and loop_idx == self.input_loops - 1:
                     saved_states[block_idx] = {
-                        key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2", "r") if key in result
+                        key: result[key] for key in ("w0", "w1", "w2", "w0h", "w1h", "w2h", "m0", "m1", "m2", "r") if key in result
                     }
             if x_loop_start is not None:
                 x = x + self.loop_rho[min(loop_idx, self.loop_rho.shape[0] - 1)] * x_loop_start

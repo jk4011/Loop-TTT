@@ -53,6 +53,9 @@ def _loop_fast_weight_apply(
     proj_boost: bool = False,
     ens_read_gamma=None,
     write_slice=None,
+    wh0=None, wh1=None, wh2=None, mb_gammas=None,
+    boost_gain=None,
+    return_echo: bool = False,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -71,8 +74,10 @@ def _loop_fast_weight_apply(
     w0_norm = w0.detach().norm(dim=1, keepdim=True)
     w1_norm = w1.detach().norm(dim=1, keepdim=True)
     w2_norm = w2.detach().norm(dim=1, keepdim=True)
-    boost = wp0 is not None
+    boost = (wp0 is not None) or (wh0 is not None)
     r_out = None
+    echo_out = None
+    echo_span = None
 
     output = []
     for start, end, update, apply in ttt_ua_order:
@@ -90,9 +95,28 @@ def _loop_fast_weight_apply(
                 # gradient boosting; fixes boost's last-only double-counting).
                 vi = r_in
             elif boost:
-                # Residual target: what the previous loop's memory could not explain.
-                pred_prev = (F.silu(ki @ wp0, inplace=False) * (ki @ wp2)) @ wp1
-                if proj_boost:
+                if wh0 is not None:
+                    # multiboost: subtract the γ-weighted SUM of ALL previous memories'
+                    # predictions re-evaluated on current keys (proper stagewise
+                    # boosting; fixes boost's last-only double-counting). γ age-indexed,
+                    # init [1,0,..] -> exact boost.
+                    pred_prev = mb_gammas[0] * (
+                        (F.silu(ki @ wh0[0], inplace=False) * (ki @ wh2[0])) @ wh1[0])
+                    for s in range(1, wh0.shape[0]):
+                        pred_prev = pred_prev + mb_gammas[s] * (
+                            (F.silu(ki @ wh0[s], inplace=False) * (ki @ wh2[s])) @ wh1[s])
+                else:
+                    # Residual target: what the previous loop's memory could not explain.
+                    pred_prev = (F.silu(ki @ wp0, inplace=False) * (ki @ wp2)) @ wp1
+                if boost_gain is not None:
+                    # boost-gain feedback: damp the subtraction where the previous
+                    # memory's fit is unreliable (state->loop feedback; mean-centered,
+                    # zero-init gain -> exact boost).
+                    e = (1.0 - F.cosine_similarity(pred_prev, vi, dim=-1)
+                         ).detach().unsqueeze(-1).to(vi.dtype)
+                    scale = 1.0 + boost_gain * (e.mean(dim=1, keepdim=True) - e)
+                    vi = vi - scale * pred_prev
+                elif proj_boost:
                     # Directional deflation: remove only the DIRECTION the previous
                     # memory already explains (magnitude is erased by Muon anyway, so
                     # subtracting the full mis-scaled vector injects magnitude error).
@@ -219,6 +243,14 @@ def _loop_fast_weight_apply(
                 # so it only sets the next loop's target, not a backprop path).
                 h_now = (F.silu(ki @ w0_now, inplace=False) * (ki @ w2_now)) @ w1_now
                 r_out = (vi - h_now).detach()
+            if return_echo:
+                # misfit-echo: what the freshly-updated memory could NOT store for
+                # these write tokens (computed live this pass -> never stale). The
+                # layer injects it back into the stream so the NEXT pass's features
+                # can route computation to what the memory failed to explain.
+                h_echo = (F.silu(ki @ w0_now, inplace=False) * (ki @ w2_now)) @ w1_now
+                echo_out = vi - h_echo
+                echo_span = (start, end)
 
             w0, w1, w2 = w0_now, w1_now, w2_now
 
@@ -245,7 +277,7 @@ def _loop_fast_weight_apply(
 
     output = torch.cat(output, dim=1)
 
-    return output, w0, w1, w2, r_out
+    return output, w0, w1, w2, r_out, echo_out, echo_span
 
 
 @torch.compile
@@ -395,7 +427,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         self.precond_lambda = precond_lambda
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
         known = {"lrs", "rho", "rho2", "delta", "boost", "cumboost",
-                 "projboost", "detachboost", "ensread", "sliceboost"}
+                 "projboost", "detachboost", "ensread", "sliceboost",
+                 "multiboost", "boostgain", "echo"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
         self.loop_flags = flags
         self.n_loops_max = n_loops_max
@@ -408,6 +441,24 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         # only its own hidden-unit slice -> every unit updated exactly once (no orbit),
         # apply reads the full accumulated memory. Uses ttt_state_mode="carry" + delta.
         self.slice_boost = "sliceboost" in flags
+        # multiboost: subtract ALL previous memories' predictions (γ-weighted,
+        # age-indexed shrinkage; init [1,0,..] = exact boost, so never worse at start).
+        if "multiboost" in flags:
+            g = torch.zeros(n_loops_max - 1)
+            g[0] = 1.0
+            self.mb_gamma = nn.Parameter(g)
+        # boostgain: per-loop scalar gain on the misfit-centered damping of the boost
+        # subtraction (state->loop feedback). zero-init -> exact boost. Indexed li-1
+        # (loop 0 has no boost) so every entry is used each forward (DDP-safe).
+        if "boostgain" in flags:
+            self.bg_gain = nn.Parameter(torch.zeros(n_loops_max - 1))
+        # misfit-echo: inject the memory's unexplained residual (v - f_W(k), computed
+        # live on this pass's write tokens) back into the stream via a zero-init
+        # projection -> the next pass's features can route around what the memory
+        # failed to store (feature-mediated boosting). zero-init = exact baseline.
+        if "echo" in flags:
+            self.echo_proj = nn.Linear(self.dim, self.dim, bias=False)
+            nn.init.zeros_(self.echo_proj.weight)
 
         if "lrs" in flags:
             # One bias per (loop, lr-slot); zero-init = baseline schedule.
@@ -487,9 +538,26 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         )
 
         boost = "boost" in self.loop_flags
+        multiboost = "multiboost" in self.loop_flags
         cumboost = "cumboost" in self.loop_flags
         wp0 = wp1 = wp2 = None
-        if boost or cumboost:
+        wh0 = wh1 = wh2 = mbg = None
+        if multiboost:
+            # Build the newest-first stack of ALL previous memories: [W_{l-1}, W_{l-2}..]
+            # = this loop's subtraction ensemble AND the next loop's carried history.
+            if "w0" in info:
+                p0, p1, p2 = info["w0"].unsqueeze(0), info["w1"].unsqueeze(0), info["w2"].unsqueeze(0)
+                if "w0h" in info:
+                    wh0 = torch.cat([p0, info["w0h"]], dim=0)
+                    wh1 = torch.cat([p1, info["w1h"]], dim=0)
+                    wh2 = torch.cat([p2, info["w2h"]], dim=0)
+                else:
+                    wh0, wh1, wh2 = p0, p1, p2
+                mbg = self.mb_gamma[:wh0.shape[0]].to(wh0.dtype)
+            w0 = self.w0.repeat(x.shape[0], 1, 1)
+            w1 = self.w1.repeat(x.shape[0], 1, 1)
+            w2 = self.w2.repeat(x.shape[0], 1, 1)
+        elif boost or cumboost:
             # Boosting: always update from the fresh learned init. boost carries the
             # previous WEIGHTS (as residual-prediction source); cumboost carries the
             # running RESIDUAL vector r (info["r"]) — fresh init either way.
@@ -518,6 +586,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             w1 = self.w1.repeat(x.shape[0], 1, 1)
             w2 = self.w2.repeat(x.shape[0], 1, 1)
 
+        echo = echo_span = None
         if self.momentum > 0.0:
             # Cross-loop heavy-ball: weights reset to fresh init (w0/w1/w2 above),
             # momentum M carried via info["m0/1/2"].
@@ -540,7 +609,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
                 ssz = d_h // self.n_loops_max
                 write_slice = (li * ssz, (li + 1) * ssz if li < self.n_loops_max - 1 else d_h)
-            output, w0, w1, w2, r_out = _loop_fast_weight_apply(
+            output, w0, w1, w2, r_out, echo, echo_span = _loop_fast_weight_apply(
                 w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
                 muon_update_steps=muon_steps,
                 update_epochs=self.update_epochs,
@@ -559,8 +628,15 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 proj_boost="projboost" in self.loop_flags,
                 ens_read_gamma=(self.ens_gamma if "ensread" in self.loop_flags else None),
                 write_slice=write_slice,
+                wh0=wh0, wh1=wh1, wh2=wh2, mb_gammas=mbg,
+                boost_gain=(self.bg_gain[min(info.get("loop_idx", 1), self.n_loops_max - 1) - 1]
+                            if ("boostgain" in self.loop_flags and "w0" in info) else None),
+                return_echo="echo" in self.loop_flags,
             )
             state = {"w0": w0, "w1": w1, "w2": w2}
+            if multiboost and wh0 is not None:
+                # carried history for the NEXT loop = [W_{l-1}, W_{l-2}, ...]
+                state["w0h"], state["w1h"], state["w2h"] = wh0, wh1, wh2
             if cumboost and r_out is not None:
                 state["r"] = r_out
 
@@ -570,6 +646,13 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         )
 
         output = self.c_proj(output)
+        if "echo" in self.loop_flags and echo is not None:
+            # add the projected memory residual onto the write tokens' output rows
+            e = rearrange(echo, "(b h) l d -> b l (h d)", h=self.num_heads, b=x.shape[0])
+            s0, s1 = echo_span
+            output = torch.cat(
+                [output[:, :s0], output[:, s0:s1] + self.echo_proj(e), output[:, s1:]],
+                dim=1)
         return output, state
 
     def extra_repr(self) -> str:
