@@ -156,3 +156,5 @@ EXIT 0 r15_loop_l2x4_kd6sup_s95
 CHAIN_DONE r15_loop_l2x4_kd6sup_s95 PSNR: 22.347
 EXIT 0 r16_loop_ep2gs_kd6_s95
 CHAIN_DONE r16_loop_ep2gs_kd6_s95 PSNR: 22.501
+EXIT 0 r16_loop_l2x8_sup_s95
+CHAIN_DONE r16_loop_l2x8_sup_s95 PSNR: 23.000

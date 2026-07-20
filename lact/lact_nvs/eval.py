@@ -29,6 +29,8 @@ parser.add_argument("--image_size", nargs=2, type=int, default=[256, 256])
 parser.add_argument("--window", type=int, default=128)
 parser.add_argument("--bs", type=int, default=8)
 parser.add_argument("--out", type=str, default=None)
+parser.add_argument("--use_ema", action="store_true",
+                    help="Load the 'ema' weights from the checkpoint instead of 'model'")
 args = parser.parse_args()
 
 model_config = omegaconf.OmegaConf.load(args.config)
@@ -37,6 +39,10 @@ model = LaCTLVSM(**model_config).cuda()
 checkpoint = torch.load(args.load, map_location="cpu", weights_only=False)
 state = checkpoint["model"] if "model" in checkpoint else checkpoint
 model.load_state_dict(state)
+if args.use_ema:
+    assert "ema" in checkpoint, "checkpoint has no EMA weights"
+    model.load_state_dict({n: v.float() for n, v in checkpoint["ema"].items()}, strict=False)
+    print("Loaded EMA weights", flush=True)
 model.eval()
 
 n_in, n_tg = args.num_input_views, args.num_target_views

@@ -71,6 +71,20 @@ parser.add_argument("--kd_teacher", type=str, default="",
                          "Inference stays iso (student only); teacher is train-only.")
 parser.add_argument("--kd_config", type=str, default="",
                     help="Config yaml for the KD teacher model.")
+parser.add_argument("--kd_traj", type=str, default="",
+                    help="Trajectory-KD: comma list of 1-based teacher loop indices, one per "
+                         "student loop (e.g. '2,3,5,6'); intermediate student renders are pulled "
+                         "toward the mapped teacher loop renders. Requires --kd_teacher.")
+parser.add_argument("--kd_traj_weight", type=float, default=0.3,
+                    help="Weight of the trajectory-KD waypoint MSE terms")
+parser.add_argument("--init_from", type=str, default="",
+                    help="Warm-start: load model WEIGHTS ONLY from this checkpoint (fresh "
+                         "optimizer/schedule); ignored when auto-resuming from outputs/<exp>")
+parser.add_argument("--ema_decay", type=float, default=0.0,
+                    help="If >0 keep an EMA shadow of the weights (saved under 'ema' in ckpts)")
+parser.add_argument("--loop_anneal", type=str, default="",
+                    help="Deterministic loop-count schedule 'n:until_iter,...' e.g. '6:6000,5:12000' "
+                         "(after the last boundary the config n_loops is used)")
 parser.add_argument("--kd_weight", type=float, default=1.0,
                     help="Weight of the KD render-matching loss.")
 parser.add_argument("--seed", type=int, default=95)
@@ -131,7 +145,20 @@ for try_load_path in [output_dir, args.load]:
         break
     except:
         continue
-        
+
+if now_iters == 0 and args.init_from:
+    init_ckpt = torch.load(args.init_from, map_location="cpu", weights_only=False)
+    init_sd = init_ckpt["model"] if "model" in init_ckpt else init_ckpt
+    missing, unexpected = model.load_state_dict(init_sd, strict=False)
+    print(f"Warm-started weights from {args.init_from} "
+          f"(missing={len(missing)}, unexpected={len(unexpected)})", flush=True)
+
+ema_state = None
+if args.ema_decay > 0:
+    ema_state = {n: p.detach().clone().float() for n, p in model.named_parameters()}
+    if now_iters > 0 and "ema" in checkpoint:
+        ema_state = {n: v.float() for n, v in checkpoint["ema"].items()}
+
 model = DDP(model, device_ids=[ddp_local_rank])
 
 # This activation checkpointing wrapper supports torch.compile
@@ -226,9 +253,20 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
             if args.stoch_depth:
                 choices = [int(c) for c in args.stoch_depth.split(",")]
                 n_over = choices[torch.randint(len(choices), (1,)).item()]
+            if args.loop_anneal:
+                # Deterministic pure function of now_iters -> auto-resume reproduces it.
+                for part in args.loop_anneal.split(","):
+                    n_str, until_str = part.split(":")
+                    if now_iters < int(until_str):
+                        n_over = int(n_str)
+                        break
+            use_all_loops = use_loop_sup or bool(args.kd_traj)
             rendering = model(input_data_dict, target_data_dict,
-                              return_all_loops=use_loop_sup, n_loops_override=n_over)
+                              return_all_loops=use_all_loops, n_loops_override=n_over)
             aux_loss = 0.0
+            if use_all_loops and not use_loop_sup:
+                renders = rendering
+                rendering = renders[-1]
             if use_loop_sup:
                 renders = rendering
                 rendering = renders[-1]
@@ -241,8 +279,18 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
 
             if kd_teacher is not None:
                 with torch.no_grad():
-                    t_render = kd_teacher(input_data_dict, target_data_dict)
+                    t_out = kd_teacher(input_data_dict, target_data_dict,
+                                       return_all_loops=bool(args.kd_traj))
+                t_render = t_out[-1] if args.kd_traj else t_out
                 aux_loss = aux_loss + args.kd_weight * F.mse_loss(rendering, t_render.detach())
+                if args.kd_traj:
+                    # Waypoint KD: intermediate student renders imitate the teacher's
+                    # iteration path (final loop excluded; endpoint KD above covers it).
+                    traj_map = [int(c) - 1 for c in args.kd_traj.split(",")]
+                    traj_terms = [F.mse_loss(renders[i], t_out[traj_map[i]].detach())
+                                  for i in range(len(renders) - 1) if i < len(traj_map)]
+                    if traj_terms:
+                        aux_loss = aux_loss + args.kd_traj_weight * sum(traj_terms) / len(traj_terms)
 
             if args.distill_weight > 0:
                 # Deep-teacher self-distillation: same tied weights, more loop passes,
@@ -276,6 +324,12 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
 
         if not skip_optimizer_step:
             optimizer.step()
+            if ema_state is not None:
+                with torch.no_grad():
+                    for n, p in model.module.named_parameters():
+                        # actckpt inserts "_checkpoint_wrapped_module." into names
+                        ema_state[n.replace("_checkpoint_wrapped_module.", "")].lerp_(
+                            p.detach().float(), 1.0 - args.ema_decay)
         lr_scheduler.step()     # Always step the lr scheduler and iters
         now_iters += 1
 
@@ -289,13 +343,16 @@ for epoch in range((remaining_steps - 1) // len(dataloader) + 1):
                 lpips_val = lpips_loss.item() if isinstance(lpips_loss, torch.Tensor) else lpips_loss
                 print(f"Iter {now_iters:07d}, PSNR: {psnr:.2f}, LPIPS: {lpips_val:.4f}, it/s: {ips:.2f}", flush=True)
             if now_iters % args.save_every == 0:
-                torch.save({
+                save_dict = {
                     "model": remove_module_prefix(model.state_dict()),
                     "optimizer": optimizer.state_dict(),
                     "lr_scheduler": lr_scheduler.state_dict(),
                     "now_iters": now_iters,
                     "epoch": epoch,
-                }, f"{output_dir}/model_{now_iters:07d}.pth")
+                }
+                if ema_state is not None:
+                    save_dict["ema"] = {n: v.to(torch.bfloat16) for n, v in ema_state.items()}
+                torch.save(save_dict, f"{output_dir}/model_{now_iters:07d}.pth")
             
 
         if now_iters == args.steps:

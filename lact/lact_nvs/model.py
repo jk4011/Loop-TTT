@@ -145,6 +145,11 @@ class Block(nn.Module):
     def forward(self, x, info):
         results = {}
         loop_idx = info.get("loop_idx", 0)
+        if self.loop_film is not None or self.branch_gate is not None:
+            # n_loops_override can exceed the per-loop param count (e.g. loop-count
+            # annealing); extra passes reuse the last slot.
+            n_slots = (self.loop_film if self.loop_film is not None else self.branch_gate).shape[0]
+            loop_idx = min(loop_idx, n_slots - 1)
         for mod_idx, (module, length_dim) in enumerate(zip(self.module_list, self.length_dim_list)):
             residual = x
             x = module["ln"](x)
@@ -476,7 +481,7 @@ class LaCTLVSM(nn.Module):
                         key: result[key] for key in ("w0", "w1", "w2", "m0", "m1", "m2", "r") if key in result
                     }
             if x_loop_start is not None:
-                x = x + self.loop_rho[loop_idx] * x_loop_start
+                x = x + self.loop_rho[min(loop_idx, self.loop_rho.shape[0] - 1)] * x_loop_start
             if x_pre_drop is not None and 0 < loop_idx < n_eff - 1:
                 # inverted stochastic depth: skip this interior loop's net contribution
                 keep = (torch.rand(x.shape[0], 1, 1, device=x.device) > self.drop_loop).to(x.dtype)
