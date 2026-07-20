@@ -411,3 +411,15 @@ generic 성분(gates/sup) +0.10.
 생존 = boost(+0.050 3-seed) 단 하나. 변형 6종(slice/proj/detach/ensread/multi/gain) 전멸,
 신물리 2종(transwrite/echo) 전멸, carry/momentum/partition/addressing/schedule 전멸.
 boost의 필수 성분 완전 규명: fresh full-width + full 잔차 + live gradient (셋 다 건드리면 악화).
+
+### 프로브: memory-overlap (boost ckpt, 16 scenes, 2026-07-21) — wave-18 평탄함의 정량 규명
+
+- **pairwise cos(f_{W_i}(k), f_{W_j}(k)) = 0.52~0.71**: boost의 4개 메모리는 function-space에서
+  **높게 중복** (상보적이지 않음). "이미 직교라 headroom 없음" 가설 기각.
+- **잔차 사슬 ‖v−Σf_{W_ℓ}(k)‖/‖v‖ = 1.000 → 0.977**: 메모리 앙상블이 v의 **~2.3%만** 설명.
+  fast-weight readout은 v의 재구성이 아니라 **작은 방향 신호**(o_norm으로 재스케일되는 message).
+
+**핵심 통찰**: TTT 메모리는 이 스케일(d256, 1 NS step, weight-norm)에서 연상기억이 아니라
+소규모 cross-view 라우팅 신호로 동작. write-target 공학(boost 계열 전부)은 **~2% 크기의 레버**를
+조작한 것 → wave-18 전 변형이 ±0.05 안에 몰린 이유의 정량적 설명.
+→ TTT×loop write측 개선의 구조적 상한 ≈ ±0.1dB. (논문 발견: "왜 looped-TTT 이득이 캡되는가")
