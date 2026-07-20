@@ -182,3 +182,54 @@ So round 3 asks for **fundamentally different mechanisms**, e.g. (non-exhaustive
   in a nonlinear, learnable way (the loop's value = genuine iterative refinement).
 Hard filters unchanged: task-agnostic (no camera/geometry), ~iso train & inference FLOPs
 (≤~1.1×), minimal (one-sentence explainable), prefer TTT-state × loop synergy.
+
+## ADDENDUM 4 (2026-07-20) — ROUND 4: TTT×LOOP NOVELTY ONLY. This is the real target.
+
+PI가 방향을 날카롭게 재설정했다. 지금까지의 "확정 스택" 성분 대부분은 PI가 원하는 것이 아니다:
+- **ep2 제외**: TTT gradient step을 그냥 2번 = 계산량 증가일 뿐, naive, 차별성 없음. 신규 금지.
+- **KD 제외**: 별도 teacher 훈련하는 cross-model distillation = 계산량, naive. 신규 금지.
+- **sup 시큰둥**: DVLT의 가변 loop-count 감독과 유사, 특별하지 않음.
+- **gates OK지만 아님**: vanilla transformer에도 됨 → TTT 특화 아님. generic add-on으로만 허용.
+- **boost = 가장 novel, 정확히 추구 방향**: fast weight가 활성값(TTT) × loop가 메모리 인스턴스를
+  여러 개 만듦(looping) 둘 다 활용. 이런 것을 더 만들어야 한다.
+
+### 목표(불변): naive loop(22.204) 대비 +1.0dB @ iso train&inference, task-agnostic, minimal.
+### 새 필수 제약: 메커니즘은 **vanilla transformer로 포팅 불가능한 TTT×loop 고유 물리**여야 한다.
+fast weight(=활성 메모리), update(write)/apply(read) 비대칭, Muon/Newton-Schulz update, loop마다
+메모리를 재생성/재-update — 이 substrate를 건드려야 한다. 단순 feature/loss/조건화(generic)는 아니다.
+
+### 실패한 TTT×loop 실험 전체 부검 (반드시 이걸 넘어서라 — 같은 실수 반복 금지):
+- 상태 축적/carry 전멸: carry −0.45, carry+lrs −0.445, carry+rho −0.477, momentum −0.18,
+  cumboost(잔차 token-space carry) −1.52. → **Muon이 크기를 지워 궤도순환(NS-orbit 병리).**
+- inner-update 최적화 개선 전부 null: precond(Gauss-Newton) −0.03, 대각 precond +0.01,
+  epavg(Polyak) −0.01, c2f_muon −0.15, muon2(NS 5→2) −0.34. → **fit 품질은 병목이 아니다.**
+- 기타 null/음성: pli(per-loop init) −0.083, read_refine 0, key_center +0.017, loop_temp −0.01,
+  rot_bag(랜덤 직교회전) −0.15, nl_cond −0.059, qkv_route ~0.
+- schedule surgery(문맥 분할) 전멸: late-join −1.66, read-heavy −0.92, chunk −1.27, sfm −1.97.
+- 유일 성공: **boost +0.099** (reset + 이전 메모리를 **현재 키로 재평가**한 잔차만 새 메모리가 fit).
+  delta +0.056(약함).
+
+### 부검이 남긴 3 DESIGN RULE (새 아이디어는 이 규칙을 지켜야 살아남는다):
+1. **NS-orbit 병리**: Muon/NS가 gradient를 고정-norm 회전으로 정규화 → 크기 정보 소실. 그래서
+   (a) 가중치를 loop 간 축적하면 수렴 대신 순환 → **매 loop fresh 메모리가 사실상 필수**,
+   (b) lr/크기 조절 knob은 전부 no-op. **오직 방향(direction)만 살아남는다 — 이걸 역이용하라.**
+2. **cross-loop 신호는 반드시 "현재 특징"으로 재-표현하라**. boost(현재 키로 재평가)=+0.099 vs
+   cumboost(얼린 잔차 벡터 carry)=−1.52. 상태를 얼려서 들고 오면 특징 drift로 stale해진다.
+3. **fit 품질(메모리를 더 잘 채우기)은 병목이 아니다**. 값은 **각 pass가 보완적(서로 다른) 일**을
+   하게 만드는 데서 나온다. boost가 정확히 그것(각 메모리가 잔차의 다른 층 담당).
+
+### 그러니 ROUND 4가 탐색할 곳 (자유롭게, 단 위 3규칙 준수 + TTT×loop 고유):
+- **Boosting 확장**: multi-memory boosting(모든 이전 메모리 합의 잔차), subspace/head-partitioned
+  writes(loop마다 fast-weight의 다른 부분공간/헤드만 갱신 → 간섭 없이 용량 ×n), 직교-잔차 targeting
+  (이전 예측 방향 성분 제거 — "방향만 산다" 규칙 역이용), block-partitioned boosting.
+- **메모리-앙상블 readout**: 최종 apply가 모든 per-loop 메모리 출력 f_{W_ℓ}(q)을 결합(읽기측 boost).
+- **fast weight가 활성값이라는 점 극한 활용**: loop 사이로 미분되는 메모리, 메모리 출력의
+  cross-loop 직교/비상관 aux loss(train-only, 추론 iso), 메모리를 미분가능 scratchpad로.
+- **update/apply 비대칭**: transductive write(읽을 query 분포에 write), loop마다 무엇을 write vs
+  read할지, write-token subset vs apply-all.
+- **state→loop 피드백**: 메모리 상태 통계(예: 방향 drift)로 다음 pass를 조건화(단 generic gate와
+  달리 TTT 상태에서 나온 신호여야).
+- **multi-timescale 메모리**: 느린/빠른 메모리, loop마다 다른 rate/scale로 write.
+- **key/query 기하 across loops**: 메모리가 보완적이 되도록 loop마다 update-key/apply-query를 다르게.
+Hard filters: task-agnostic(카메라/geometry 금지), iso train&inference(≤~1.1×), minimal(한 문장),
+그리고 "vanilla transformer로 포팅 가능한가?" 테스트를 통과하면 그건 우리 것이 아니다(gates류).
