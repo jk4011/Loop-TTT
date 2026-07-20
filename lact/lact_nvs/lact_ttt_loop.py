@@ -50,6 +50,9 @@ def _loop_fast_weight_apply(
     r_in=None,
     epavg: bool = False,
     gate_bias=None,
+    proj_boost: bool = False,
+    ens_read_gamma=None,
+    write_slice=None,
 ):
     """Variant of fast_weight_swish_glu_weight_norm_mini_batch_apply.
 
@@ -89,7 +92,14 @@ def _loop_fast_weight_apply(
             elif boost:
                 # Residual target: what the previous loop's memory could not explain.
                 pred_prev = (F.silu(ki @ wp0, inplace=False) * (ki @ wp2)) @ wp1
-                vi = vi - pred_prev
+                if proj_boost:
+                    # Directional deflation: remove only the DIRECTION the previous
+                    # memory already explains (magnitude is erased by Muon anyway, so
+                    # subtracting the full mis-scaled vector injects magnitude error).
+                    p = pred_prev / (pred_prev.norm(dim=-1, keepdim=True) + 1e-5)
+                    vi = vi - (vi * p).sum(dim=-1, keepdim=True) * p
+                else:
+                    vi = vi - pred_prev
 
             w1_acc = None  # epavg: running sum of w1 iterates (Polyak averaging)
             for _ in range(update_epochs):
@@ -158,13 +168,42 @@ def _loop_fast_weight_apply(
                     w1_grad = w1_grad * rho_bar
                     w0_grad = w0_grad * rho_bar
                     w2_grad = w2_grad * rho_bar
-                w1_now = w1_now + w1_grad
-                w0_now = w0_now + w0_grad
-                w2_now = w2_now + w2_grad
+                if write_slice is not None:
+                    # Partitioned single-step write (slice-boost): loop ℓ writes only
+                    # hidden units [lo:hi] of the CARRIED weights; every hidden unit is
+                    # thus updated exactly once over the whole loop (single-step regime
+                    # => no NS-orbit), while apply always reads the full accumulated
+                    # memory (built-in ensemble read). w0/w2 columns and w1 rows for
+                    # hidden units are masked; renorm touches only written units so the
+                    # frozen slices stay bit-exact.
+                    lo, hi = write_slice
+                    dh = w0_now.shape[2]
+                    cmask = ((torch.arange(dh, device=w0_now.device) >= lo)
+                             & (torch.arange(dh, device=w0_now.device) < hi))
+                    cmask0 = cmask.to(w0_now.dtype).view(1, 1, dh)      # w0/w2 columns
+                    rmask1 = cmask.to(w1_now.dtype).view(1, dh, 1)      # w1 rows
+                    # slice-local weight-norm targets (from the carried weights)
+                    w0_tn = (w0_now * cmask0).norm(dim=1, keepdim=True)
+                    w2_tn = (w2_now * cmask0).norm(dim=1, keepdim=True)
+                    w1_tn = (w1_now * rmask1).norm(dim=1, keepdim=True)
+                    w0_now = w0_now + w0_grad * cmask0
+                    w2_now = w2_now + w2_grad * cmask0
+                    w1_now = w1_now + w1_grad * rmask1
+                    # renorm written units only (masked norm ignores frozen units)
+                    w0_sn = (w0_now * cmask0).norm(dim=1, keepdim=True)
+                    w2_sn = (w2_now * cmask0).norm(dim=1, keepdim=True)
+                    w1_sn = (w1_now * rmask1).norm(dim=1, keepdim=True)
+                    w0_now = w0_now * (1 - cmask0) + cmask0 * w0_now / (w0_sn + 1e-5) * w0_tn
+                    w2_now = w2_now * (1 - cmask0) + cmask0 * w2_now / (w2_sn + 1e-5) * w2_tn
+                    w1_now = w1_now * (1 - rmask1) + rmask1 * w1_now / (w1_sn + 1e-5) * w1_tn
+                else:
+                    w1_now = w1_now + w1_grad
+                    w0_now = w0_now + w0_grad
+                    w2_now = w2_now + w2_grad
 
-                w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
-                w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
-                w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
+                    w0_now = w0_now / (w0_now.norm(dim=1, keepdim=True) + 1e-5) * w0_norm
+                    w1_now = w1_now / (w1_now.norm(dim=1, keepdim=True) + 1e-5) * w1_norm
+                    w2_now = w2_now / (w2_now.norm(dim=1, keepdim=True) + 1e-5) * w2_norm
                 if epavg:
                     w1_acc = w1_now if w1_acc is None else w1_acc + w1_now
 
@@ -189,6 +228,12 @@ def _loop_fast_weight_apply(
             if gate_bias is not None:
                 gate_q = gate_q + gate_bias
             oi = (F.silu(gate_q, inplace=False) * (qi @ w2_now)) @ w1_now
+            if ens_read_gamma is not None and wp0 is not None:
+                # Ensemble read (read-side boost): the boosted predictor is the SUM of
+                # per-loop memories, but apply normally reads only the newest residual
+                # memory. Add the previous memory re-queried on the CURRENT queries.
+                oi = oi + ens_read_gamma * (
+                    (F.silu(qi @ wp0, inplace=False) * (qi @ wp2)) @ wp1)
             if read_refine != 0.0:
                 # Read-side refinement: re-query the same memory with a query nudged
                 # by its own first read (per-head, dims match), then renormalize.
@@ -349,11 +394,20 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         self.precond_w1 = precond_w1    # Gauss-Newton/RLS Richardson iters on w1 (0 = off)
         self.precond_lambda = precond_lambda
         flags = set(loop_mode.split("+")) if loop_mode != "none" else set()
-        known = {"lrs", "rho", "rho2", "delta", "boost", "cumboost"}
+        known = {"lrs", "rho", "rho2", "delta", "boost", "cumboost",
+                 "projboost", "detachboost", "ensread", "sliceboost"}
         assert flags <= known, f"unknown loop_mode flags: {flags - known}"
         self.loop_flags = flags
         self.n_loops_max = n_loops_max
         self.update_epochs = update_epochs  # inner TTT steps per pass on same chunk
+        # ensread (read-side boosting): learnable scalar gain on the previous memory's
+        # readout at the current queries. zero-init -> exact baseline.
+        if "ensread" in flags:
+            self.ens_gamma = nn.Parameter(torch.zeros(1))
+        # sliceboost (partitioned single-step writes): carry weights, each loop writes
+        # only its own hidden-unit slice -> every unit updated exactly once (no orbit),
+        # apply reads the full accumulated memory. Uses ttt_state_mode="carry" + delta.
+        self.slice_boost = "sliceboost" in flags
 
         if "lrs" in flags:
             # One bias per (loop, lr-slot); zero-init = baseline schedule.
@@ -441,6 +495,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             # running RESIDUAL vector r (info["r"]) — fresh init either way.
             if boost and "w0" in info:
                 wp0, wp1, wp2 = info["w0"], info["w1"], info["w2"]
+                if "detachboost" in self.loop_flags:
+                    wp0, wp1, wp2 = wp0.detach(), wp1.detach(), wp2.detach()
             w0 = self.w0.repeat(x.shape[0], 1, 1)
             w1 = self.w1.repeat(x.shape[0], 1, 1)
             w2 = self.w2.repeat(x.shape[0], 1, 1)
@@ -476,6 +532,14 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             muon_steps = self.muon_update_steps
             if self.muon_schedule is not None:
                 muon_steps = self.muon_schedule[min(info.get("loop_idx", 0), len(self.muon_schedule) - 1)]
+            write_slice = None
+            if self.slice_boost:
+                # Each loop writes its own contiguous hidden-unit slice of the carried
+                # weights; over n_loops passes every unit is written exactly once.
+                d_h = w0.shape[2]
+                li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
+                ssz = d_h // self.n_loops_max
+                write_slice = (li * ssz, (li + 1) * ssz if li < self.n_loops_max - 1 else d_h)
             output, w0, w1, w2, r_out = _loop_fast_weight_apply(
                 w0, w1, w2, q, k, v, lr0, lr1, lr2, info["ttt_op_order"],
                 muon_update_steps=muon_steps,
@@ -492,6 +556,9 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
                 epavg=self.epavg,
                 gate_bias=(self.loop_gate_bias[min(info.get("loop_idx", 0), self.n_loops_max - 1)]
                            if self.nl_cond else None),
+                proj_boost="projboost" in self.loop_flags,
+                ens_read_gamma=(self.ens_gamma if "ensread" in self.loop_flags else None),
+                write_slice=write_slice,
             )
             state = {"w0": w0, "w1": w1, "w2": w2}
             if cumboost and r_out is not None:
