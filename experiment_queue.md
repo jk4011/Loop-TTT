@@ -1,5 +1,27 @@
 # 실험 큐
 
+## WAVE 18 (라운드4 — TTT×loop NOVELTY, IDEAS_R4.md, 2026-07-20)
+
+방향 전환: ep2/KD 신규 금지. boost 계열 TTT×loop 고유 메커니즘만. DESIGN THEOREM A∩B∩C.
+
+큐 (우선순위순, 전부 boost 22.303 / naive 22.204 대비 s95 paired):
+1. **r18_slice_boost_s95** ★ — carry + loop마다 disjoint hidden slice(d_h/n) delta write, apply full.
+   orbit 구조적 불가+용량×n+무료 ensemble read. naive보다 쌈. 10에이전트 만장일치 1순위. (커널 구현)
+2. **r18_proj_boost_s95** — boost 전체빼기→방향 deflation v−(v·f̂_prev)f̂_prev. 3줄. ~1.0×.
+3. **r18_detach_boost_s95** — boost pred_prev detach(proper stagewise). 1줄.
+4. **r18_ensemble_read_s95** — 최종 apply가 모든 per-loop 메모리를 현재 q로 읽음(read측 boost). ~1.03×.
+5. **r18_multiboost_s95** — v−Σ_{j<ℓ}γ_j f_{W_j}(k) (모든 이전 재평가, stagewise). ~1.02×.
+6. **r18_decorloss_s95** — train-only Σcos²(f_{W_j}(k),f_{W_ℓ}(k)). strict iso-inference.
+7. **r18_boostgain_s95** — per-token boost 강도 s(e_t) (이전메모리 fit gating).
+
+PROBE (GPU 틈새, slice-boost와 병행):
+- probe-memory-overlap: boost 메모리 function-space 직교도 → diversity 투자 결정.
+- probe-boost-traj: boost 궤적 재배속 여부 → 메모리 stage=궤적 currency 여부.
+
+진행 중(KD 방향 마지막 데이터, 완주 후 슬롯 반납): warm6_kd(g0), optzone(g1), anneal654(g2 곧 완료), lpips-KD(g3).
+
+# 실험 큐
+
 ## WAVE 17 (라운드3 선정 — IDEAS_R3.md, 2026-07-20)
 
 실행 중:
