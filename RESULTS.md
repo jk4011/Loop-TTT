@@ -334,3 +334,15 @@ EMA 축 접음 (agent-7이 예측한 null).
 1. kdtraj 무효 설명됨: student는 자기 4단계에 배속해야 함 (teacher 6단계 waypoint 강요 X).
 2. **LPIPS-space KD 우선** (진행: r17_ep2gs_kd6_lpips): MSE-KD는 PSNR만, 지각 격차 놓침.
 3. iso-FLOP로 loop 수 늘리기(micropass 등)가 원리적 레버 — 한계 loop이 진짜 가치 추가 확인.
+
+### kd8 (L2×8 teacher KD) — teacher 품질 스케일링 실패 (2026-07-20, s95)
+
+| exp | PSNR | LPIPS | vs naive | vs kd6-stack 22.501 | 판정 |
+|---|---|---|---|---|---|
+| r17_ep2gs_kd8 (L2×8 teacher) | 22.212 | 0.2995 | +0.008 | −0.289 | **급락/무효** |
+
+**중대 발견**: 더 강한 teacher(L2×8 +0.797)가 KD를 오히려 **망침** (LPIPS도 악화 +0.012).
+TAKD "teacher-student 격차 과대 → 전이 악화" 확증. 프로브가 보인 대로 L2×8의 22.85 endpoint는
+8단계 궤적 산물 → 4단계 student에 MSE 강요 = 불가능한 압축 = 손상.
+**KD sweet spot = 적당히 깊은 teacher (L2×6, gap 2). teacher 품질은 단조 증가 안 함.**
+남은 KD 레버: LPIPS-KD(진행), warm-start(진행), progressive 8→6→4 (중간 단계가 gap 2라 유효 가능).

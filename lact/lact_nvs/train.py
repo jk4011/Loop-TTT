@@ -87,6 +87,9 @@ parser.add_argument("--init_from", type=str, default="",
                          "optimizer/schedule); ignored when auto-resuming from outputs/<exp>")
 parser.add_argument("--ema_decay", type=float, default=0.0,
                     help="If >0 keep an EMA shadow of the weights (saved under 'ema' in ckpts)")
+parser.add_argument("--loop_param_lr_mult", type=float, default=0.0,
+                    help="If >0, put per-loop conditioning params (gates/film/rho) in a wd=0 "
+                         "group at lr*this-mult (fixes their weight-decay-to-identity pull)")
 parser.add_argument("--loop_anneal", type=str, default="",
                     help="Deterministic loop-count schedule 'n:until_iter,...' e.g. '6:6000,5:12000' "
                          "(after the last boundary the config n_loops is used)")
@@ -114,12 +117,26 @@ dataloader_seed_generator.manual_seed(rank_specific_seed)
 model = LaCTLVSM(**model_config).cuda()
 
 # Optimizers
-decay_params = [p for p in model.parameters() if p.dim() >= 2]
-nodecay_params = [p for p in model.parameters() if p.dim() < 2]
+# Per-loop conditioning params (gates/film/rho) are zero-init and dim>=2, so they
+# would land in the weight-decay group and be continuously pulled back toward their
+# identity value -- fighting the conditioning they are meant to learn. With
+# --loop_param_lr_mult>0 they get their own wd=0 group at a higher lr.
+LOOP_PARAM_KEYS = ("loop_film", "branch_gate", "state_gate", "loop_rho",
+                   "loop_gate_bias", "loop_rot", "loop_temp")
+def _is_loop_param(name):
+    return args.loop_param_lr_mult > 0 and any(k in name for k in LOOP_PARAM_KEYS)
+decay_params = [p for n, p in model.named_parameters() if p.dim() >= 2 and not _is_loop_param(n)]
+nodecay_params = [p for n, p in model.named_parameters() if p.dim() < 2 and not _is_loop_param(n)]
+loop_params = [p for n, p in model.named_parameters() if _is_loop_param(n)]
 optim_groups = [
     {"params": decay_params, "weight_decay": args.weight_decay},
     {"params": nodecay_params, "weight_decay": 0.0},
 ]
+if loop_params:
+    optim_groups.append({"params": loop_params, "weight_decay": 0.0,
+                         "lr": args.lr * args.loop_param_lr_mult})
+    print(f"optzone: {len(loop_params)} per-loop params -> wd=0, lr x{args.loop_param_lr_mult}",
+          flush=True)
 optimizer = torch.optim.AdamW(optim_groups, lr=args.lr, betas=(0.9, 0.95), fused=True)
 lr_scheduler = get_cosine_schedule_with_warmup(
     optimizer,

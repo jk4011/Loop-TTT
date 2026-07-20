@@ -164,3 +164,5 @@ CHAIN_DONE r16_loop_ep2gs_kd6_s97 PSNR: 22.504
 CHAIN_DONE r16_loop_ep2gs_kd6_s96 PSNR: 22.456
 EXIT 0 r17_ep2gs_kdtraj_s95
 CHAIN_DONE r17_ep2gs_kdtraj_s95 PSNR: 22.486
+EXIT 0 r17_ep2gs_kd8_s95
+CHAIN_DONE r17_ep2gs_kd8_s95 PSNR: 22.212
