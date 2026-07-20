@@ -1,3 +1,27 @@
+# 실험 큐
+
+## WAVE 17 (라운드3 선정 — IDEAS_R3.md, 2026-07-20)
+
+실행 중:
+- g0: r16_loop_ep2gs_kd6_s96 (KD 스택 seed 검증)
+- g2: r16_loop_ep2gs_kd6_s97 (KD 스택 seed 검증)
+- g1: r16_loop_l2x8_sup_s95 (L2×8+sup teacher, eval 직전)
+
+큐 (우선순위순):
+1. **r17_ep2gs_kdtraj_s95** — ep2gs+KD + trajectory waypoint KD (student ℓ ← teacher t(ℓ)={2,3,5,6}
+   렌더, w=0.3). `--kd_traj` 신설. → g3 즉시.
+2. **r17_ep2gs_kd8_s95** — teacher를 L2×8+sup로 교체 (teacher 품질 스케일링). 코드 0줄. → g1.
+3. **r17_warm6_kd_s95** — `--init_from` (L2×6+sup teacher weights, shape 동일 검증됨) + KD + lr 5e-5.
+4. **r17_anneal654_s95** — n_loops 6(0–6k)→5(–12k)→4(–30k) 결정적 anneal, 배포 4. 1.15× train.
+5. **r17_ep2gs_optzone_s95** — per-loop 파라미터(wd 억압 발견) wd=0 + lr×8 존 분리, ep2gs 위.
+6. **r17_ep2gs_loopnoise_s95** — pass별 σ=[.12,.06,.03,0] feature noise (train만), ep2gs 위.
+7. **r17_micropass_s95** — [B1B2,B1,B1B2,B1,B1B2] 5-pass @1.00×.
+8. probe_traj (×6 vs ×4 per-loop 곡선) — GPU 틈새 30분.
+모든 신규 런에 `--ema` 동봉 (eval 이중 측정, attribution 무비용).
+
+2차 대기: feat-KD, bpb, state2gate, TokenPyramid, ensemble-teacher, shortcut-consistency,
+sup-γ curriculum, c2f-sup. (상세 IDEAS_R3.md)
+
 # Experiment Queue
 
 > GPU가 비는 대로 위에서부터 실행. 결과는 RESULTS.md에 기록.
