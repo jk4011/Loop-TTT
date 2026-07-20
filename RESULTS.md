@@ -301,3 +301,13 @@ teacher가 강해질수록 KD로 가져올 원천 gain 증가. r17에서 이 tea
 ep2+sup+gates 단독(+0.283 3-seed)에서 **KD가 +0.087 추가** (거의 직교, 3-seed 확정).
 현재 최고 확정 스택 = **+0.370dB @ iso-inference**. 목표 +1.0까지 +0.63 남음.
 다음: 더 강한 teacher(L2×8, +0.797), trajectory KD, warm-start, loop-anneal로 KD 흡수량 증대.
+
+### Wave 17 초기 결과 (2026-07-20, s95)
+
+| exp | PSNR | vs naive 22.204 | vs kd6-stack 22.501 | 판정 |
+|---|---|---|---|---|
+| r17_ep2gs_kdtraj (waypoint KD w=0.3) | 22.486 | +0.283 | −0.015 | **무효** (endpoint KD보다 개선 없음) |
+
+Trajectory/waypoint KD 사망: student 4-loop 경로 ≠ teacher 6-loop 경로, 과잉 제약.
+교훈: KD는 endpoint만으로 충분; 중간 waypoint 매칭은 도움 안 됨.
+남은 KD 레버는 **teacher 품질**(kd8 진행 중)과 **weight-space warm-start**(warm6_kd 진행 중).
