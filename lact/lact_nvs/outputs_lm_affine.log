@@ -1,0 +1,4 @@
+params: 16.0M
+optzone: 12 per-loop params -> wd=0, lr x64.0
+/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/lib/python3.12/site-packages/torch/nn/functional.py:2954: UserWarning: Mismatch dtype between input and weight: input dtype = c10::BFloat16, weight dtype = float, Cannot dispatch to fused implementation. (Triggered internally at /pytorch/aten/src/ATen/native/layer_norm.cpp:344.)
+  return torch.rms_norm(input, normalized_shape, weight, eps)
