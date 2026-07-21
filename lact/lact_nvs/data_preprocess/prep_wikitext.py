@@ -12,7 +12,7 @@ p.add_argument("--out", required=True)
 args = p.parse_args()
 
 tok = GPT2TokenizerFast.from_pretrained("gpt2")
-ds = load_dataset("wikitext", "wikitext-103-raw-v1")
+ds = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1")
 
 for split, name in [("train", "train"), ("validation", "val")]:
     ids = []
