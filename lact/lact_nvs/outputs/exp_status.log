@@ -240,3 +240,11 @@ EXIT 0 r19_bgsfon_lr64_s96
 CHAIN_DONE r19_bgsfon_lr64_s96 PSNR: 22.773
 EXIT 0 r19_bgsfon_lr128_s95
 CHAIN_DONE r19_bgsfon_lr128_s95 PSNR: 23.083
+EXIT 0 r20_gfson_lr64_s95
+CHAIN_DONE r20_gfson_lr64_s95 PSNR: 23.057
+EXIT 0 r19_bgsfon_lr64_s97
+EXIT 0 r19_bgsfon_lr128_s97
+CHAIN_DONE r19_bgsfon_lr64_s97 PSNR: 22.990
+EXIT 0 r19_bgsfon_lr128_s96
+CHAIN_DONE r19_bgsfon_lr128_s97 PSNR: 23.113
+CHAIN_DONE r19_bgsfon_lr128_s96 PSNR: 22.857
