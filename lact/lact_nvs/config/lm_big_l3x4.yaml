@@ -1,0 +1,27 @@
+# Large-scale LM transfer: GPT-2-small-class looped model (3 blocks x 4 loops = eff. 12)
+vocab_size: 50257
+dim: 768
+layers: 3
+n_loops: 4
+seq_len: 1024
+ttt_chunk: 256
+block_config:
+  - type: model.SelfAttention
+    length_dim: vl
+    params:
+      head_dim: 64
+      use_qk_norm: true
+      causal: true
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 768
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
