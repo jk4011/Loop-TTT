@@ -577,3 +577,16 @@ WikiText-103, GPT-2 BPE, 16M 파라미터, dim256 2블록×4loop(chunk-causal TT
 스케일 추세: 16M −21~24% → 78M −7.5%. 방법 유효하나 상대효과 축소(다이얼 lr 미조정/토큰예산/
 대형모델의 자체 분화 가능성). 진행: 비루프 원본 앵커(l12 195M compute-match, l8, l2).
 후속 후보: 78M에서 lr_mult 스윕(16/32), nl_cond 진짜 포함 시험.
+
+### TTT-rope 규모 LLM (lact_llm 파이프라인, seq4096, fineweb-edu, 2026-07-22)
+
+앵커(기존 런 재활용): 12층 원본 0.5B ppl 27.92 / 3B ppl 18.40.
+
+| 모델 (0.5B) | ppl | Δ vs naive |
+|---|---|---|
+| loop_naive 3×4 | 31.15 | — |
+| **loop_ours (+다이얼+optzone×64)** | **30.46** | **−0.69 (−2.2%)** |
+
+**스케일 추세 (정직)**: naive→원본 격차 회복률 16M 66% → 78M 50% → TTT-rope급 20%.
+강한 TTT층(muon+momentum+scale)일수록 다이얼 여지 축소 또는 lr_mult 미조정.
+진행: lr_mult 16/128 스윕(0.5B), 3B pair(~5h, 1일급 헤드라인).

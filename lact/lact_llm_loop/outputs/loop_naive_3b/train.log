@@ -88,3 +88,192 @@ init low rank fast weight 4 192 192 32
 [train] steps=91552 bs=8 grad_accum=1 seq_len=4096 tokens/step=32768 token_budget~2,999,975,936
 [transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
 step=100 loss=8.5825 tokens/sec=112,722 lr=1.184e-04 tokens_seen=3,276,800
+step=200 loss=6.7304 tokens/sec=145,934 lr=2.355e-04 tokens_seen=6,553,600
+step=300 loss=6.1785 tokens/sec=161,140 lr=3.000e-04 tokens_seen=9,830,400
+step=400 loss=5.8580 tokens/sec=159,964 lr=3.000e-04 tokens_seen=13,107,200
+step=500 loss=5.6254 tokens/sec=162,097 lr=3.000e-04 tokens_seen=16,384,000
+step=600 loss=5.3928 tokens/sec=161,604 lr=3.000e-04 tokens_seen=19,660,800
+step=700 loss=5.2457 tokens/sec=161,196 lr=3.000e-04 tokens_seen=22,937,600
+step=800 loss=5.1227 tokens/sec=162,350 lr=3.000e-04 tokens_seen=26,214,400
+step=900 loss=4.9851 tokens/sec=163,030 lr=3.000e-04 tokens_seen=29,491,200
+step=1000 loss=4.9154 tokens/sec=160,097 lr=3.000e-04 tokens_seen=32,768,000
+VAL step=1000 loss=4.8923 ppl=133.25 (eval took 4.2s)
+step=1100 loss=4.8291 tokens/sec=162,030 lr=2.999e-04 tokens_seen=36,044,800
+step=1200 loss=4.7702 tokens/sec=161,082 lr=2.999e-04 tokens_seen=39,321,600
+step=1300 loss=4.7384 tokens/sec=162,365 lr=2.999e-04 tokens_seen=42,598,400
+step=1400 loss=4.6509 tokens/sec=165,652 lr=2.999e-04 tokens_seen=45,875,200
+step=1500 loss=4.5872 tokens/sec=165,379 lr=2.999e-04 tokens_seen=49,152,000
+step=1600 loss=4.5431 tokens/sec=162,403 lr=2.998e-04 tokens_seen=52,428,800
+step=1700 loss=4.5225 tokens/sec=165,663 lr=2.998e-04 tokens_seen=55,705,600
+step=1800 loss=4.4783 tokens/sec=165,114 lr=2.998e-04 tokens_seen=58,982,400
+step=1900 loss=4.3958 tokens/sec=158,069 lr=2.998e-04 tokens_seen=62,259,200
+step=2000 loss=4.3455 tokens/sec=163,050 lr=2.997e-04 tokens_seen=65,536,000
+VAL step=2000 loss=4.3558 ppl=77.93 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step2000.pt (stream at 58,560 raw examples, 77520 carry-over tokens) in 0.8s
+step=2100 loss=4.3284 tokens/sec=159,377 lr=2.997e-04 tokens_seen=68,812,800
+step=2200 loss=4.3143 tokens/sec=161,240 lr=2.997e-04 tokens_seen=72,089,600
+step=2300 loss=4.2554 tokens/sec=161,536 lr=2.996e-04 tokens_seen=75,366,400
+step=2400 loss=4.2010 tokens/sec=160,660 lr=2.996e-04 tokens_seen=78,643,200
+step=2500 loss=4.2130 tokens/sec=157,532 lr=2.996e-04 tokens_seen=81,920,000
+step=2600 loss=4.1151 tokens/sec=158,547 lr=2.995e-04 tokens_seen=85,196,800
+step=2700 loss=4.1373 tokens/sec=157,073 lr=2.995e-04 tokens_seen=88,473,600
+step=2800 loss=4.1076 tokens/sec=156,862 lr=2.994e-04 tokens_seen=91,750,400
+step=2900 loss=4.0549 tokens/sec=158,136 lr=2.994e-04 tokens_seen=95,027,200
+step=3000 loss=4.0671 tokens/sec=159,222 lr=2.993e-04 tokens_seen=98,304,000
+VAL step=3000 loss=4.0741 ppl=58.80 (eval took 3.7s)
+step=3100 loss=4.0422 tokens/sec=159,697 lr=2.993e-04 tokens_seen=101,580,800
+step=3200 loss=4.0190 tokens/sec=164,267 lr=2.992e-04 tokens_seen=104,857,600
+step=3300 loss=3.9781 tokens/sec=162,176 lr=2.992e-04 tokens_seen=108,134,400
+step=3400 loss=3.9540 tokens/sec=164,785 lr=2.991e-04 tokens_seen=111,411,200
+step=3500 loss=3.9672 tokens/sec=165,116 lr=2.991e-04 tokens_seen=114,688,000
+step=3600 loss=3.9731 tokens/sec=164,968 lr=2.990e-04 tokens_seen=117,964,800
+step=3700 loss=3.9478 tokens/sec=165,787 lr=2.989e-04 tokens_seen=121,241,600
+step=3800 loss=3.9322 tokens/sec=163,362 lr=2.989e-04 tokens_seen=124,518,400
+step=3900 loss=3.9199 tokens/sec=159,549 lr=2.988e-04 tokens_seen=127,795,200
+step=4000 loss=3.8988 tokens/sec=161,204 lr=2.988e-04 tokens_seen=131,072,000
+VAL step=4000 loss=3.9182 ppl=50.31 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step4000.pt (stream at 115,584 raw examples, 60555 carry-over tokens) in 0.8s
+step=4100 loss=3.9069 tokens/sec=162,456 lr=2.987e-04 tokens_seen=134,348,800
+step=4200 loss=3.9035 tokens/sec=159,984 lr=2.986e-04 tokens_seen=137,625,600
+step=4300 loss=3.8715 tokens/sec=162,383 lr=2.985e-04 tokens_seen=140,902,400
+step=4400 loss=3.8738 tokens/sec=161,155 lr=2.985e-04 tokens_seen=144,179,200
+step=4500 loss=3.8487 tokens/sec=163,086 lr=2.984e-04 tokens_seen=147,456,000
+step=4600 loss=3.8731 tokens/sec=160,102 lr=2.983e-04 tokens_seen=150,732,800
+step=4700 loss=3.8496 tokens/sec=161,052 lr=2.982e-04 tokens_seen=154,009,600
+step=4800 loss=3.8289 tokens/sec=156,973 lr=2.982e-04 tokens_seen=157,286,400
+step=4900 loss=3.7876 tokens/sec=154,133 lr=2.981e-04 tokens_seen=160,563,200
+step=5000 loss=3.8166 tokens/sec=160,702 lr=2.980e-04 tokens_seen=163,840,000
+VAL step=5000 loss=3.8123 ppl=45.26 (eval took 3.7s)
+step=5100 loss=3.8168 tokens/sec=165,684 lr=2.979e-04 tokens_seen=167,116,800
+step=5200 loss=3.7746 tokens/sec=158,829 lr=2.978e-04 tokens_seen=170,393,600
+step=5300 loss=3.8169 tokens/sec=166,321 lr=2.977e-04 tokens_seen=173,670,400
+step=5400 loss=3.7738 tokens/sec=166,235 lr=2.977e-04 tokens_seen=176,947,200
+step=5500 loss=3.7862 tokens/sec=167,736 lr=2.976e-04 tokens_seen=180,224,000
+step=5600 loss=3.7604 tokens/sec=161,428 lr=2.975e-04 tokens_seen=183,500,800
+step=5700 loss=3.7541 tokens/sec=163,009 lr=2.974e-04 tokens_seen=186,777,600
+step=5800 loss=3.7436 tokens/sec=158,439 lr=2.973e-04 tokens_seen=190,054,400
+step=5900 loss=3.7504 tokens/sec=162,572 lr=2.972e-04 tokens_seen=193,331,200
+step=6000 loss=3.7296 tokens/sec=162,267 lr=2.971e-04 tokens_seen=196,608,000
+VAL step=6000 loss=3.7322 ppl=41.77 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step6000.pt (stream at 173,696 raw examples, 10113 carry-over tokens) in 0.9s
+step=6100 loss=3.7277 tokens/sec=160,798 lr=2.970e-04 tokens_seen=199,884,800
+step=6200 loss=3.7198 tokens/sec=162,970 lr=2.969e-04 tokens_seen=203,161,600
+step=6300 loss=3.6912 tokens/sec=162,160 lr=2.968e-04 tokens_seen=206,438,400
+step=6400 loss=3.6854 tokens/sec=159,274 lr=2.967e-04 tokens_seen=209,715,200
+step=6500 loss=3.6968 tokens/sec=162,866 lr=2.966e-04 tokens_seen=212,992,000
+step=6600 loss=3.6963 tokens/sec=164,788 lr=2.964e-04 tokens_seen=216,268,800
+step=6700 loss=3.6825 tokens/sec=164,649 lr=2.963e-04 tokens_seen=219,545,600
+step=6800 loss=3.6745 tokens/sec=168,187 lr=2.962e-04 tokens_seen=222,822,400
+step=6900 loss=3.6464 tokens/sec=168,877 lr=2.961e-04 tokens_seen=226,099,200
+step=7000 loss=3.6941 tokens/sec=164,537 lr=2.960e-04 tokens_seen=229,376,000
+VAL step=7000 loss=3.6885 ppl=39.99 (eval took 3.7s)
+step=7100 loss=3.6785 tokens/sec=167,129 lr=2.959e-04 tokens_seen=232,652,800
+step=7200 loss=3.6485 tokens/sec=167,346 lr=2.957e-04 tokens_seen=235,929,600
+step=7300 loss=3.6402 tokens/sec=163,908 lr=2.956e-04 tokens_seen=239,206,400
+step=7400 loss=3.6656 tokens/sec=163,198 lr=2.955e-04 tokens_seen=242,483,200
+step=7500 loss=3.6168 tokens/sec=162,324 lr=2.954e-04 tokens_seen=245,760,000
+step=7600 loss=3.6603 tokens/sec=159,674 lr=2.952e-04 tokens_seen=249,036,800
+step=7700 loss=3.6417 tokens/sec=163,955 lr=2.951e-04 tokens_seen=252,313,600
+step=7800 loss=3.6378 tokens/sec=163,753 lr=2.950e-04 tokens_seen=255,590,400
+step=7900 loss=3.6519 tokens/sec=159,980 lr=2.948e-04 tokens_seen=258,867,200
+step=8000 loss=3.6123 tokens/sec=162,331 lr=2.947e-04 tokens_seen=262,144,000
+VAL step=8000 loss=3.6476 ppl=38.38 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step8000.pt (stream at 230,080 raw examples, 21299 carry-over tokens) in 0.9s
+step=8100 loss=3.6395 tokens/sec=163,099 lr=2.946e-04 tokens_seen=265,420,800
+step=8200 loss=3.6395 tokens/sec=163,014 lr=2.944e-04 tokens_seen=268,697,600
+step=8300 loss=3.6202 tokens/sec=163,225 lr=2.943e-04 tokens_seen=271,974,400
+step=8400 loss=3.6125 tokens/sec=167,552 lr=2.941e-04 tokens_seen=275,251,200
+step=8500 loss=3.6061 tokens/sec=165,956 lr=2.940e-04 tokens_seen=278,528,000
+step=8600 loss=3.6260 tokens/sec=167,622 lr=2.939e-04 tokens_seen=281,804,800
+step=8700 loss=3.5873 tokens/sec=169,389 lr=2.937e-04 tokens_seen=285,081,600
+step=8800 loss=3.5859 tokens/sec=167,771 lr=2.936e-04 tokens_seen=288,358,400
+step=8900 loss=3.5719 tokens/sec=168,476 lr=2.934e-04 tokens_seen=291,635,200
+step=9000 loss=3.6008 tokens/sec=168,290 lr=2.933e-04 tokens_seen=294,912,000
+VAL step=9000 loss=3.6034 ppl=36.72 (eval took 3.7s)
+step=9100 loss=3.5834 tokens/sec=167,653 lr=2.931e-04 tokens_seen=298,188,800
+step=9200 loss=3.5841 tokens/sec=163,716 lr=2.930e-04 tokens_seen=301,465,600
+step=9300 loss=3.5833 tokens/sec=164,345 lr=2.928e-04 tokens_seen=304,742,400
+step=9400 loss=3.5512 tokens/sec=159,856 lr=2.926e-04 tokens_seen=308,019,200
+step=9500 loss=3.5855 tokens/sec=163,410 lr=2.925e-04 tokens_seen=311,296,000
+step=9600 loss=3.5479 tokens/sec=163,449 lr=2.923e-04 tokens_seen=314,572,800
+step=9700 loss=3.5419 tokens/sec=163,090 lr=2.921e-04 tokens_seen=317,849,600
+step=9800 loss=3.5640 tokens/sec=160,570 lr=2.920e-04 tokens_seen=321,126,400
+step=9900 loss=3.5698 tokens/sec=162,965 lr=2.918e-04 tokens_seen=324,403,200
+step=10000 loss=3.5520 tokens/sec=163,082 lr=2.916e-04 tokens_seen=327,680,000
+VAL step=10000 loss=3.5761 ppl=35.73 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step10000.pt (stream at 286,336 raw examples, 28735 carry-over tokens) in 0.9s
+step=10100 loss=3.5584 tokens/sec=161,478 lr=2.915e-04 tokens_seen=330,956,800
+step=10200 loss=3.5421 tokens/sec=166,816 lr=2.913e-04 tokens_seen=334,233,600
+step=10300 loss=3.5196 tokens/sec=167,430 lr=2.911e-04 tokens_seen=337,510,400
+step=10400 loss=3.5332 tokens/sec=165,324 lr=2.910e-04 tokens_seen=340,787,200
+step=10500 loss=3.5649 tokens/sec=169,549 lr=2.908e-04 tokens_seen=344,064,000
+step=10600 loss=3.5432 tokens/sec=166,817 lr=2.906e-04 tokens_seen=347,340,800
+step=10700 loss=3.5275 tokens/sec=164,672 lr=2.904e-04 tokens_seen=350,617,600
+step=10800 loss=3.5231 tokens/sec=168,268 lr=2.902e-04 tokens_seen=353,894,400
+step=10900 loss=3.5277 tokens/sec=168,571 lr=2.901e-04 tokens_seen=357,171,200
+step=11000 loss=3.5266 tokens/sec=163,947 lr=2.899e-04 tokens_seen=360,448,000
+VAL step=11000 loss=3.5483 ppl=34.75 (eval took 3.7s)
+step=11100 loss=3.5003 tokens/sec=164,060 lr=2.897e-04 tokens_seen=363,724,800
+step=11200 loss=3.5232 tokens/sec=163,964 lr=2.895e-04 tokens_seen=367,001,600
+step=11300 loss=3.5103 tokens/sec=162,381 lr=2.893e-04 tokens_seen=370,278,400
+step=11400 loss=3.5048 tokens/sec=162,923 lr=2.891e-04 tokens_seen=373,555,200
+step=11500 loss=3.5283 tokens/sec=160,707 lr=2.889e-04 tokens_seen=376,832,000
+step=11600 loss=3.4965 tokens/sec=165,613 lr=2.887e-04 tokens_seen=380,108,800
+step=11700 loss=3.5109 tokens/sec=161,188 lr=2.885e-04 tokens_seen=383,385,600
+step=11800 loss=3.4987 tokens/sec=162,069 lr=2.883e-04 tokens_seen=386,662,400
+step=11900 loss=3.5291 tokens/sec=164,149 lr=2.881e-04 tokens_seen=389,939,200
+step=12000 loss=3.4985 tokens/sec=164,179 lr=2.879e-04 tokens_seen=393,216,000
+VAL step=12000 loss=3.5224 ppl=33.87 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step12000.pt (stream at 344,448 raw examples, 34596 carry-over tokens) in 0.9s
+step=12100 loss=3.4786 tokens/sec=165,058 lr=2.877e-04 tokens_seen=396,492,800
+step=12200 loss=3.4994 tokens/sec=169,537 lr=2.875e-04 tokens_seen=399,769,600
+step=12300 loss=3.4987 tokens/sec=168,043 lr=2.873e-04 tokens_seen=403,046,400
+step=12400 loss=3.4813 tokens/sec=166,846 lr=2.871e-04 tokens_seen=406,323,200
+step=12500 loss=3.5069 tokens/sec=168,370 lr=2.869e-04 tokens_seen=409,600,000
+step=12600 loss=3.4934 tokens/sec=167,218 lr=2.867e-04 tokens_seen=412,876,800
+step=12700 loss=3.4990 tokens/sec=166,115 lr=2.865e-04 tokens_seen=416,153,600
+step=12800 loss=3.5031 tokens/sec=167,527 lr=2.862e-04 tokens_seen=419,430,400
+step=12900 loss=3.5120 tokens/sec=165,515 lr=2.860e-04 tokens_seen=422,707,200
+step=13000 loss=3.4877 tokens/sec=164,595 lr=2.858e-04 tokens_seen=425,984,000
+VAL step=13000 loss=3.4998 ppl=33.11 (eval took 3.7s)
+step=13100 loss=3.5121 tokens/sec=161,825 lr=2.856e-04 tokens_seen=429,260,800
+step=13200 loss=3.4885 tokens/sec=162,337 lr=2.854e-04 tokens_seen=432,537,600
+step=13300 loss=3.4825 tokens/sec=165,293 lr=2.851e-04 tokens_seen=435,814,400
+step=13400 loss=3.4700 tokens/sec=162,401 lr=2.849e-04 tokens_seen=439,091,200
+step=13500 loss=3.4700 tokens/sec=163,904 lr=2.847e-04 tokens_seen=442,368,000
+step=13600 loss=3.5092 tokens/sec=162,949 lr=2.845e-04 tokens_seen=445,644,800
+step=13700 loss=3.4746 tokens/sec=161,022 lr=2.842e-04 tokens_seen=448,921,600
+step=13800 loss=3.5004 tokens/sec=165,525 lr=2.840e-04 tokens_seen=452,198,400
+step=13900 loss=3.4670 tokens/sec=169,094 lr=2.838e-04 tokens_seen=455,475,200
+step=14000 loss=3.4868 tokens/sec=164,548 lr=2.835e-04 tokens_seen=458,752,000
+VAL step=14000 loss=3.4929 ppl=32.88 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step14000.pt (stream at 402,112 raw examples, 46793 carry-over tokens) in 1.0s
+step=14100 loss=3.4664 tokens/sec=168,989 lr=2.833e-04 tokens_seen=462,028,800
+step=14200 loss=3.4864 tokens/sec=168,269 lr=2.831e-04 tokens_seen=465,305,600
+step=14300 loss=3.4966 tokens/sec=167,015 lr=2.828e-04 tokens_seen=468,582,400
+step=14400 loss=3.4646 tokens/sec=168,527 lr=2.826e-04 tokens_seen=471,859,200
+step=14500 loss=3.4642 tokens/sec=168,822 lr=2.823e-04 tokens_seen=475,136,000
+step=14600 loss=3.4771 tokens/sec=166,853 lr=2.821e-04 tokens_seen=478,412,800
+step=14700 loss=3.4662 tokens/sec=165,364 lr=2.819e-04 tokens_seen=481,689,600
+step=14800 loss=3.4398 tokens/sec=164,689 lr=2.816e-04 tokens_seen=484,966,400
+step=14900 loss=3.4582 tokens/sec=162,046 lr=2.814e-04 tokens_seen=488,243,200
+step=15000 loss=3.4417 tokens/sec=163,984 lr=2.811e-04 tokens_seen=491,520,000
+VAL step=15000 loss=3.4681 ppl=32.08 (eval took 3.7s)
+step=15100 loss=3.4582 tokens/sec=164,644 lr=2.809e-04 tokens_seen=494,796,800
+step=15200 loss=3.4772 tokens/sec=162,056 lr=2.806e-04 tokens_seen=498,073,600
+step=15300 loss=3.4694 tokens/sec=161,753 lr=2.803e-04 tokens_seen=501,350,400
+step=15400 loss=3.4552 tokens/sec=166,016 lr=2.801e-04 tokens_seen=504,627,200
+step=15500 loss=3.4526 tokens/sec=162,217 lr=2.798e-04 tokens_seen=507,904,000
+step=15600 loss=3.4312 tokens/sec=165,809 lr=2.796e-04 tokens_seen=511,180,800
+step=15700 loss=3.4714 tokens/sec=166,009 lr=2.793e-04 tokens_seen=514,457,600
+step=15800 loss=3.4369 tokens/sec=165,765 lr=2.790e-04 tokens_seen=517,734,400
+step=15900 loss=3.4658 tokens/sec=170,201 lr=2.788e-04 tokens_seen=521,011,200
+step=16000 loss=3.4591 tokens/sec=166,028 lr=2.785e-04 tokens_seen=524,288,000
+VAL step=16000 loss=3.4567 ppl=31.71 (eval took 3.7s)
+[ckpt] saved outputs/loop_naive_3b/ckpt_step16000.pt (stream at 459,072 raw examples, 64682 carry-over tokens) in 1.0s
+step=16100 loss=3.4217 tokens/sec=166,032 lr=2.783e-04 tokens_seen=527,564,800
+step=16200 loss=3.4455 tokens/sec=167,903 lr=2.780e-04 tokens_seen=530,841,600
+step=16300 loss=3.4180 tokens/sec=167,123 lr=2.777e-04 tokens_seen=534,118,400
+step=16400 loss=3.4260 tokens/sec=169,032 lr=2.774e-04 tokens_seen=537,395,200
+step=16500 loss=3.4096 tokens/sec=169,222 lr=2.772e-04 tokens_seen=540,672,000
+step=16600 loss=3.4186 tokens/sec=166,001 lr=2.769e-04 tokens_seen=543,948,800
