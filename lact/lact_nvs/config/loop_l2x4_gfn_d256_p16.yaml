@@ -15,13 +15,14 @@ block_config:
     params:
       head_dim: 64
       use_qk_norm: true
-  - type: lact_ttt.FastWeightGluMLPMultihead
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
     length_dim: vl
     params:
       head_dim: 256
       inter_multi: 2
       base_lr: 0.01
       muon_update_steps: 5
+      loop_mode: none
       nl_cond: true
       n_loops_max: 4
   - type: model.MLP
