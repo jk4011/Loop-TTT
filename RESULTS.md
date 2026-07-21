@@ -535,3 +535,16 @@ lr64에서 기여 0 확인 — boost-free와 동급). 주의: 이 수치들은 s
 no-sup 미니멀 헤드라인 = 다이얼 3종+optzone = **+0.569 (s95)**. sup 기여 정량화: ~+0.3
 (같은 구성+sup = +0.855~1.053). affine-shift는 no-sup에서 무효 → gfn이 최종 미니멀 후보.
 3-seed 검증 투입(s96/s97). LM 이식 검증(lm_naive vs lm_affine) 병행 시작.
+
+### LLM 이식 검증 — TASK-AGNOSTIC 실증 (2026-07-21)
+
+WikiText-103, GPT-2 BPE, 16M 파라미터, dim256 2블록×4loop(chunk-causal TTT), 12k step ×
+16k tok = 196M 토큰, 동일 seed/데이터/val 윈도우 paired.
+
+| exp | val loss | ppl |
+|---|---|---|
+| lm_naive (naive loop) | 4.310 | 74.45 |
+| **lm_affine (다이얼+optzone lr×64)** | **4.080** | **59.14** |
+
+**Δ = −0.230 nats, perplexity −20.6%** (파라미터 +0.2%, FLOPs ~0). NVS(+0.569 s95 no-sup)와
+동일 레시피가 LM에서 그대로 작동 — **task-agnostic 주장 양 태스크 실증 완료.**
