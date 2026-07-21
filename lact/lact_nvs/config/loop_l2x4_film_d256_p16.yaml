@@ -1,12 +1,12 @@
-# Big-swing: reset loop + per-loop FiLM (Deja View per-step channel scales; zero FLOPs).
+# MINIMAL method: naive loop + per-loop FiLM only (+optzone training fix). One sentence: 반복마다 입력에 채널별 배율·이동 다이얼 하나.
 # Fast weights RESET to learned init at each loop pass (attention-like looping).
 patch_size: 16
 dim: 256
 layers: 2
 n_loops: 4
+loop_film: true
 ttt_state_mode: reset
 input_injection: none
-loop_film: true
 
 block_config:
   - type: model.SelfAttention
