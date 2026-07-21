@@ -566,3 +566,14 @@ WikiText-103, GPT-2 BPE, 16M 파라미터, dim256 2블록×4loop(chunk-causal TT
 | lm_affine_s96 | 4.0661 | 58.33 |
 
 **2-seed 일관: ppl −20.6% / −23.9%** — LM 이식 견고 확인.
+
+### 대형 LM 78M (fineweb-edu 500M tok, DDP×2, 2026-07-21 밤)
+
+| exp | val loss | ppl | Δ |
+|---|---|---|---|
+| lm_big_naive (3블록×4loop, 78.3M) | 3.7822 | 43.91 | — |
+| **lm_big_affine (+다이얼+optzone×64)** | **3.7044** | **40.63** | **−0.078 nats, ppl −7.5%** |
+
+스케일 추세: 16M −21~24% → 78M −7.5%. 방법 유효하나 상대효과 축소(다이얼 lr 미조정/토큰예산/
+대형모델의 자체 분화 가능성). 진행: 비루프 원본 앵커(l12 195M compute-match, l8, l2).
+후속 후보: 78M에서 lr_mult 스윕(16/32), nl_cond 진짜 포함 시험.
