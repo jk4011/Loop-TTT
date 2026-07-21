@@ -548,3 +548,21 @@ WikiText-103, GPT-2 BPE, 16M 파라미터, dim256 2블록×4loop(chunk-causal TT
 
 **Δ = −0.230 nats, perplexity −20.6%** (파라미터 +0.2%, FLOPs ~0). NVS(+0.569 s95 no-sup)와
 동일 레시피가 LM에서 그대로 작동 — **task-agnostic 주장 양 태스크 실증 완료.**
+
+### Wave 21 최종 + config 오류 정정 (2026-07-21 저녁)
+
+**정정**: r21 "gfn" config에 nl_cond가 누락돼 있었음(생성 replace 실패). 따라서:
+- **no-sup 미니멀 3-seed 확정 = +0.546 (gates+film 2다이얼 + optzone)** (+0.569/+0.528/+0.540, t≥25)
+  — 3다이얼이 아니라 **2다이얼**의 성과. 더 미니멀.
+- r21_gf ≡ r21_gfn(bit-identical) → 훈련 결정론적 → paired 비교 신뢰도 극상.
+- nl_cond의 no-sup 추가 기여는 미검증 (config 수정 완료, 대형 LM 후 1런 예정).
+- sup-시대 bgsfon(+0.855/+1.053) 및 LM affine config는 nl_cond 정상 포함.
+
+### LM 16M seed-96 재현 (2026-07-21)
+
+| exp | val loss | ppl |
+|---|---|---|
+| lm_naive_s96 | 4.3395 | 76.67 |
+| lm_affine_s96 | 4.0661 | 58.33 |
+
+**2-seed 일관: ppl −20.6% / −23.9%** — LM 이식 견고 확인.
