@@ -107,7 +107,7 @@ class MLP(nn.Module):
 
 class Block(nn.Module):
     def __init__(self, dim, bias, block_config, n_loops_max=1, loop_film=False,
-                 loop_gates=False):
+                 loop_gates=False, loop_affine=False):
         super().__init__()
         module_list = []
         self.length_dim_list = []
@@ -141,6 +141,17 @@ class Block(nn.Module):
         if loop_gates:
             self.branch_gate = nn.Parameter(torch.zeros(n_loops_max, len(block_config), dim))
             self.state_gate = nn.Parameter(torch.zeros(n_loops_max, dim))
+        # Full per-loop AFFINE conditioning: add zero-init SHIFTS at the two sites
+        # that had scale-only gates (branch output, stream). With tied weights a
+        # per-loop scale is a diagonal weight-untying; the shift additionally lets
+        # each loop inject a learned constant direction into the stream (a feature-
+        # space "loop position embedding"). scale+shift everywhere = the completed
+        # cheap-untying spectrum (film already does scale+shift on inputs).
+        self.branch_shift = None
+        if loop_affine:
+            assert loop_gates, "loop_affine extends loop_gates"
+            self.branch_shift = nn.Parameter(torch.zeros(n_loops_max, len(block_config), dim))
+            self.state_shift = nn.Parameter(torch.zeros(n_loops_max, dim))
 
     def forward(self, x, info):
         results = {}
@@ -168,10 +179,14 @@ class Block(nn.Module):
 
             if self.branch_gate is not None:
                 x = x * (1 + self.branch_gate[loop_idx, mod_idx])
+                if self.branch_shift is not None:
+                    x = x + self.branch_shift[loop_idx, mod_idx]
             x = residual + x
             results.update(result)
         if self.branch_gate is not None:
             x = x * (1 + self.state_gate[loop_idx])
+            if self.branch_shift is not None:
+                x = x + self.state_shift[loop_idx]
         return x, results
 
 
@@ -218,7 +233,7 @@ class LaCTLVSM(nn.Module):
     def __init__(self, patch_size, dim, layers, block_config,
                  n_loops=1, ttt_state_mode="reset", input_injection="none",
                  loop_film=False, view_schedule="all", update_chunks=1,
-                 render_feedback=False, target_loops=0, loop_gates=False,
+                 render_feedback=False, target_loops=0, loop_gates=False, loop_affine=False,
                  input_loops=0, feat_mom=False, geo_addr=False,
                  stream_norm=False, fused_readout=False, drop_loop=0.0,
                  transductive_write=False):
@@ -287,7 +302,8 @@ class LaCTLVSM(nn.Module):
         self.input_layernorm = nn.LayerNorm(self.dim, bias=False)
         self.blocks = nn.ModuleList([
             Block(dim=self.dim, bias=False, block_config=block_config,
-                  n_loops_max=n_loops, loop_film=loop_film, loop_gates=loop_gates)
+                  n_loops_max=n_loops, loop_film=loop_film, loop_gates=loop_gates,
+                  loop_affine=loop_affine)
             for _ in range(layers)
         ])
         # LT2-style per-loop residual gate on the whole loop body:
