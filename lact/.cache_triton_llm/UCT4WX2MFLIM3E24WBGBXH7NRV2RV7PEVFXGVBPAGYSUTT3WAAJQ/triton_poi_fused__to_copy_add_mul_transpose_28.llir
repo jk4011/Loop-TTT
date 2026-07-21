@@ -1,0 +1,110 @@
+; ModuleID = 'LLVMDialectModule'
+source_filename = "LLVMDialectModule"
+target datalayout = "e-p3:32:32-p4:32:32-p5:32:32-p6:32:32-p7:32:32-i64:64-i128:128-v16:16-v32:32-n16:32:64"
+
+; Function Attrs: nounwind
+define ptx_kernel void @triton_poi_fused__to_copy_add_mul_transpose_28(ptr addrspace(1) %0, ptr addrspace(1) %1, ptr addrspace(1) %2, ptr addrspace(1) %3, i32 %4, ptr addrspace(1) readnone captures(none) %5, ptr addrspace(1) readnone captures(none) %6) local_unnamed_addr #0 !dbg !4 {
+  %8 = tail call i32 @llvm.nvvm.read.ptx.sreg.ctaid.x(), !dbg !7
+  %9 = shl i32 %8, 10, !dbg !8
+  %10 = tail call i32 @llvm.nvvm.read.ptx.sreg.tid.x(), !dbg !9
+  %11 = shl nuw nsw i32 %10, 3, !dbg !9
+  %12 = and i32 %11, 1016, !dbg !9
+  %13 = or disjoint i32 %12, %9, !dbg !10
+  %14 = sext i32 %13 to i64, !dbg !11
+  %15 = getelementptr float, ptr addrspace(1) %0, i64 %14, !dbg !11
+  %16 = getelementptr i8, ptr addrspace(1) %15, i64 16, !dbg !11
+  %17 = tail call { i32, i32, i32, i32 } asm sideeffect "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];", "=r,=r,=r,=r,l"(ptr addrspace(1) %15) #2, !dbg !12
+  %18 = extractvalue { i32, i32, i32, i32 } %17, 0, !dbg !12
+  %19 = extractvalue { i32, i32, i32, i32 } %17, 1, !dbg !12
+  %20 = extractvalue { i32, i32, i32, i32 } %17, 2, !dbg !12
+  %21 = extractvalue { i32, i32, i32, i32 } %17, 3, !dbg !12
+  %22 = tail call { i32, i32, i32, i32 } asm sideeffect "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];", "=r,=r,=r,=r,l"(ptr addrspace(1) %16) #2, !dbg !12
+  %23 = extractvalue { i32, i32, i32, i32 } %22, 0, !dbg !12
+  %24 = extractvalue { i32, i32, i32, i32 } %22, 1, !dbg !12
+  %25 = extractvalue { i32, i32, i32, i32 } %22, 2, !dbg !12
+  %26 = extractvalue { i32, i32, i32, i32 } %22, 3, !dbg !12
+  %27 = getelementptr bfloat, ptr addrspace(1) %1, i64 %14, !dbg !13
+  %28 = tail call { i32, i32, i32, i32 } asm sideeffect "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];", "=r,=r,=r,=r,l"(ptr addrspace(1) %27) #2, !dbg !14
+  %29 = extractvalue { i32, i32, i32, i32 } %28, 0, !dbg !14
+  %30 = bitcast i32 %29 to <2 x bfloat>, !dbg !14
+  %31 = extractvalue { i32, i32, i32, i32 } %28, 1, !dbg !14
+  %32 = bitcast i32 %31 to <2 x bfloat>, !dbg !14
+  %33 = extractvalue { i32, i32, i32, i32 } %28, 2, !dbg !14
+  %34 = bitcast i32 %33 to <2 x bfloat>, !dbg !14
+  %35 = extractvalue { i32, i32, i32, i32 } %28, 3, !dbg !14
+  %36 = bitcast i32 %35 to <2 x bfloat>, !dbg !14
+  %37 = getelementptr bfloat, ptr addrspace(1) %2, i64 %14, !dbg !15
+  %38 = insertelement <2 x i32> poison, i32 %18, i64 0, !dbg !12
+  %39 = insertelement <2 x i32> %38, i32 %19, i64 1, !dbg !12
+  %40 = bitcast <2 x i32> %39 to <2 x float>, !dbg !12
+  %41 = fpext <2 x bfloat> %30 to <2 x float>, !dbg !16
+  %42 = fmul <2 x float> %40, splat (float 0x400703E420000000), !dbg !17
+  %43 = fadd <2 x float> %42, %41, !dbg !18
+  %44 = fptrunc <2 x float> %43 to <2 x bfloat>, !dbg !19
+  %45 = insertelement <2 x i32> poison, i32 %20, i64 0, !dbg !12
+  %46 = insertelement <2 x i32> %45, i32 %21, i64 1, !dbg !12
+  %47 = bitcast <2 x i32> %46 to <2 x float>, !dbg !12
+  %48 = fpext <2 x bfloat> %32 to <2 x float>, !dbg !16
+  %49 = fmul <2 x float> %47, splat (float 0x400703E420000000), !dbg !17
+  %50 = fadd <2 x float> %49, %48, !dbg !18
+  %51 = fptrunc <2 x float> %50 to <2 x bfloat>, !dbg !19
+  %52 = insertelement <2 x i32> poison, i32 %23, i64 0, !dbg !12
+  %53 = insertelement <2 x i32> %52, i32 %24, i64 1, !dbg !12
+  %54 = bitcast <2 x i32> %53 to <2 x float>, !dbg !12
+  %55 = fpext <2 x bfloat> %34 to <2 x float>, !dbg !16
+  %56 = fmul <2 x float> %54, splat (float 0x400703E420000000), !dbg !17
+  %57 = fadd <2 x float> %56, %55, !dbg !18
+  %58 = fptrunc <2 x float> %57 to <2 x bfloat>, !dbg !19
+  %59 = insertelement <2 x i32> poison, i32 %25, i64 0, !dbg !12
+  %60 = insertelement <2 x i32> %59, i32 %26, i64 1, !dbg !12
+  %61 = bitcast <2 x i32> %60 to <2 x float>, !dbg !12
+  %62 = fpext <2 x bfloat> %36 to <2 x float>, !dbg !16
+  %63 = fmul <2 x float> %61, splat (float 0x400703E420000000), !dbg !17
+  %64 = fadd <2 x float> %63, %62, !dbg !18
+  %65 = fptrunc <2 x float> %64 to <2 x bfloat>, !dbg !19
+  %66 = bitcast <2 x bfloat> %44 to i32, !dbg !19
+  %67 = bitcast <2 x bfloat> %51 to i32, !dbg !19
+  %68 = bitcast <2 x bfloat> %58 to i32, !dbg !19
+  %69 = bitcast <2 x bfloat> %65 to i32, !dbg !19
+  tail call void asm sideeffect "st.global.v4.b32 [ $4 + 0 ], { $0, $1, $2, $3 };", "r,r,r,r,l"(i32 %66, i32 %67, i32 %68, i32 %69, ptr addrspace(1) %37) #2, !dbg !19
+  %70 = getelementptr bfloat, ptr addrspace(1) %3, i64 %14, !dbg !20
+  tail call void asm sideeffect "st.global.v4.b32 [ $4 + 0 ], { $0, $1, $2, $3 };", "r,r,r,r,l"(i32 %66, i32 %67, i32 %68, i32 %69, ptr addrspace(1) %70) #2, !dbg !21
+  ret void, !dbg !22
+}
+
+; Function Attrs: mustprogress nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare noundef range(i32 0, 2147483647) i32 @llvm.nvvm.read.ptx.sreg.ctaid.x() #1
+
+; Function Attrs: mustprogress nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare noundef range(i32 0, 1024) i32 @llvm.nvvm.read.ptx.sreg.tid.x() #1
+
+attributes #0 = { nounwind "nvvm.reqntid"="128" }
+attributes #1 = { mustprogress nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+attributes #2 = { nounwind }
+
+!llvm.dbg.cu = !{!0}
+!llvm.module.flags = !{!2, !3}
+
+!0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "triton", isOptimized: true, runtimeVersion: 0, emissionKind: LineTablesOnly)
+!1 = !DIFile(filename: "crzltarrgqjzeuw45yhnmttdvabih3xhzje3fn5ynupkcng5yxar.py", directory: "/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/loop_TTT/lact/.cache_inductor_llm/rz")
+!2 = !{i32 2, !"Debug Info Version", i32 3}
+!3 = !{i32 4, !"nvvm-reflect-ftz", i32 1}
+!4 = distinct !DISubprogram(name: "triton_poi_fused__to_copy_add_mul_transpose_28", linkageName: "triton_poi_fused__to_copy_add_mul_transpose_28", scope: !1, file: !1, line: 18, type: !5, scopeLine: 18, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
+!5 = !DISubroutineType(cc: DW_CC_normal, types: !6)
+!6 = !{}
+!7 = !DILocation(line: 20, column: 28, scope: !4)
+!8 = !DILocation(line: 20, column: 33, scope: !4)
+!9 = !DILocation(line: 21, column: 36, scope: !4)
+!10 = !DILocation(line: 21, column: 23, scope: !4)
+!11 = !DILocation(line: 24, column: 30, scope: !4)
+!12 = !DILocation(line: 24, column: 35, scope: !4)
+!13 = !DILocation(line: 25, column: 30, scope: !4)
+!14 = !DILocation(line: 25, column: 35, scope: !4)
+!15 = !DILocation(line: 31, column: 25, scope: !4)
+!16 = !DILocation(line: 25, column: 44, scope: !4)
+!17 = !DILocation(line: 27, column: 18, scope: !4)
+!18 = !DILocation(line: 29, column: 18, scope: !4)
+!19 = !DILocation(line: 31, column: 36, scope: !4)
+!20 = !DILocation(line: 32, column: 25, scope: !4)
+!21 = !DILocation(line: 32, column: 36, scope: !4)
+!22 = !DILocation(line: 32, column: 4, scope: !4)

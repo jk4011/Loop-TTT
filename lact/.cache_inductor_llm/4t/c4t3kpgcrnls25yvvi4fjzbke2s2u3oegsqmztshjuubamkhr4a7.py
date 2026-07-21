@@ -1,0 +1,87 @@
+
+import triton
+import triton.language as tl
+
+from torch._inductor.runtime import triton_helpers, triton_heuristics
+from torch._inductor.runtime.triton_helpers import libdevice, math as tl_math
+from torch._inductor.runtime.hints import AutotuneHint, ReductionHint, TileHint, DeviceProperties
+triton_helpers.set_driver_to_gpu()
+
+@triton_heuristics.persistent_reduction(
+    size_hints={'x': 8192, 'r0_': 256},
+    reduction_hint=ReductionHint.INNER,
+    filename=__file__,
+    triton_meta={'signature': {'in_out_ptr0': '*fp32', 'in_ptr0': '*bf16', 'in_ptr1': '*bf16', 'in_ptr2': '*bf16', 'in_ptr3': '*bf16', 'in_ptr4': '*fp32', 'in_ptr5': '*bf16', 'out_ptr0': '*fp32', 'out_ptr2': '*bf16', 'out_ptr3': '*bf16', 'out_ptr6': '*bf16', 'out_ptr7': '*bf16', 'xnumel': 'i32', 'r0_numel': 'i32', 'XBLOCK': 'constexpr'}, 'device': DeviceProperties(type='cuda', index=0, multi_processor_count=148, cc=100, major=10, regs_per_multiprocessor=65536, max_threads_per_multi_processor=2048, warp_size=32), 'constants': {}, 'configs': [{(0,): [['tt.divisibility', 16]], (1,): [['tt.divisibility', 16]], (2,): [['tt.divisibility', 16]], (3,): [['tt.divisibility', 16]], (4,): [['tt.divisibility', 16]], (5,): [['tt.divisibility', 16]], (6,): [['tt.divisibility', 16]], (7,): [['tt.divisibility', 16]], (8,): [['tt.divisibility', 16]], (9,): [['tt.divisibility', 16]], (10,): [['tt.divisibility', 16]], (11,): [['tt.divisibility', 16]], (12,): [['tt.divisibility', 16]], (13,): [['tt.divisibility', 16]]}]},
+    inductor_meta={'grid_type': 'Grid1D', 'autotune_hints': set(), 'kernel_name': 'triton_per_fused__to_copy_add_div_linalg_vector_norm_mul_39', 'mutated_arg_names': ['in_out_ptr0'], 'optimize_mem': True, 'no_x_dim': None, 'num_load': 7, 'num_reduction': 3, 'backend_hash': '4E7A6778FA033C9540BD4516D4C3B4EF4F52F0426F716BA619676A203337279F', 'are_deterministic_algorithms_enabled': False, 'assert_indirect_indexing': True, 'autotune_local_cache': True, 'autotune_pointwise': True, 'autotune_remote_cache': None, 'force_disable_caches': False, 'dynamic_scale_rblock': True, 'max_autotune': False, 'max_autotune_pointwise': False, 'min_split_scan_rblock': 256, 'spill_threshold': 16, 'store_cubin': False}
+)
+@triton.jit
+def triton_per_fused__to_copy_add_div_linalg_vector_norm_mul_39(in_out_ptr0, in_ptr0, in_ptr1, in_ptr2, in_ptr3, in_ptr4, in_ptr5, out_ptr0, out_ptr2, out_ptr3, out_ptr6, out_ptr7, xnumel, r0_numel, XBLOCK : tl.constexpr):
+    r0_numel = 192
+    R0_BLOCK: tl.constexpr = 256
+    rnumel = r0_numel
+    RBLOCK: tl.constexpr = R0_BLOCK
+    xoffset = tl.program_id(0) * XBLOCK
+    xindex = xoffset + tl.arange(0, XBLOCK)[:, None]
+    xmask = xindex < xnumel
+    r0_index = tl.arange(0, R0_BLOCK)[None, :]
+    r0_offset = 0
+    r0_mask = r0_index < r0_numel
+    roffset = r0_offset
+    rindex = r0_index
+    r0_1 = r0_index
+    x0 = xindex
+    tmp0 = tl.load(in_ptr0 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0).to(tl.float32)
+    tmp7 = tl.load(in_out_ptr0 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0)
+    tmp10 = tl.load(in_ptr1 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0).to(tl.float32)
+    tmp15 = tl.load(in_ptr2 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0).to(tl.float32)
+    tmp20 = tl.load(in_ptr3 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0).to(tl.float32)
+    tmp36 = tl.load(in_ptr4 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0)
+    tmp38 = tl.load(in_ptr5 + (r0_1 + 192*x0), r0_mask & xmask, other=0.0).to(tl.float32)
+    tmp1 = tmp0.to(tl.float32)
+    tmp2 = tmp1 * tmp1
+    tmp3 = tl.broadcast_to(tmp2, [XBLOCK, R0_BLOCK])
+    tmp5 = tl.where(r0_mask & xmask, tmp3, 0)
+    tmp6 = tl.sum(tmp5, 1)[:, None].to(tl.float32)
+    tmp8 = 3.7418
+    tmp9 = tmp7 * tmp8
+    tmp11 = tmp10.to(tl.float32)
+    tmp12 = tmp9 + tmp11
+    tmp13 = 2.8769
+    tmp14 = tmp12 * tmp13
+    tmp16 = tmp15.to(tl.float32)
+    tmp17 = tmp14 + tmp16
+    tmp18 = 2.8366
+    tmp19 = tmp17 * tmp18
+    tmp21 = tmp20.to(tl.float32)
+    tmp22 = tmp19 + tmp21
+    tmp23 = tmp1 + tmp22
+    tmp24 = tmp23 * tmp23
+    tmp25 = tl.broadcast_to(tmp24, [XBLOCK, R0_BLOCK])
+    tmp27 = tl.where(r0_mask & xmask, tmp25, 0)
+    tmp28 = tl.sum(tmp27, 1)[:, None].to(tl.float32)
+    tmp29 = libdevice.sqrt(tmp28)
+    tmp30 = 1e-05
+    tmp31 = tmp29 + tmp30
+    tmp32 = (tmp23 / tmp31)
+    tmp33 = libdevice.sqrt(tmp6)
+    tmp34 = tmp32 * tmp33
+    tmp35 = tmp34.to(tl.float32)
+    tmp37 = tmp36 * tmp18
+    tmp39 = tmp38.to(tl.float32)
+    tmp40 = tmp37 + tmp39
+    tmp41 = tmp23 + tmp40
+    tmp42 = tmp41 * tmp41
+    tmp43 = tl.broadcast_to(tmp42, [XBLOCK, R0_BLOCK])
+    tmp45 = tl.where(r0_mask & xmask, tmp43, 0)
+    tmp46 = tl.sum(tmp45, 1)[:, None].to(tl.float32)
+    tmp47 = libdevice.sqrt(tmp46)
+    tmp48 = tmp47 + tmp30
+    tmp49 = (tmp41 / tmp48)
+    tmp50 = tmp49 * tmp33
+    tmp51 = tmp50.to(tl.float32)
+    tl.store(in_out_ptr0 + (r0_1 + 192*x0), tmp23, r0_mask & xmask)
+    tl.store(out_ptr2 + (r0_1 + 192*x0), tmp35, r0_mask & xmask)
+    tl.store(out_ptr3 + (r0_1 + 192*x0), tmp35, r0_mask & xmask)
+    tl.store(out_ptr6 + (r0_1 + 192*x0), tmp51, r0_mask & xmask)
+    tl.store(out_ptr7 + (r0_1 + 192*x0), tmp51, r0_mask & xmask)
+    tl.store(out_ptr0 + (x0), tmp6, xmask)

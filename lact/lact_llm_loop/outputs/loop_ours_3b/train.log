@@ -1,0 +1,91 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[data] tokenizer loaded: fla-hub/transformer-1.3B-100B (vocab_size=32000)
+[cfg] LaCTSWIGLUConfig {
+  "attention_bias": false,
+  "attn_qk_norm": false,
+  "bos_token_id": 1,
+  "elementwise_affine": true,
+  "eos_token_id": 2,
+  "fp32_states": false,
+  "fuse_cross_entropy": true,
+  "fuse_norm": true,
+  "fuse_swiglu": true,
+  "fw_init_gain": 0.5,
+  "hidden_act": "swish",
+  "hidden_ratio": 4,
+  "hidden_size": 768,
+  "initializer_range": 0.02,
+  "inter_multi": 1,
+  "intermediate_size": null,
+  "lact_chunk_size": 1024,
+  "last_layer_fuse_norm": true,
+  "learnable_ttt_scale": true,
+  "loop_dials": true,
+  "lr_dim": 1,
+  "lr_parameterization": "mamba",
+  "max_position_embeddings": 4096,
+  "model_type": "lact_swiglu",
+  "n_loops": 4,
+  "no_v_silu": false,
+  "norm_eps": 1e-06,
+  "num_attn_heads": 12,
+  "num_hidden_layers": 3,
+  "num_lact_heads": 4,
+  "pad_token_id": null,
+  "qkv_bias": false,
+  "qkv_silu": true,
+  "rope_theta": 1000000,
+  "tie_word_embeddings": false,
+  "transformers_version": "5.13.0",
+  "ttt_branch_rope": "none",
+  "ttt_freq_tilt": 0.1,
+  "ttt_hidden_basis": false,
+  "ttt_hidden_rope": false,
+  "ttt_hrope_chunkq": 0,
+  "ttt_hrope_conjpairs": false,
+  "ttt_hrope_delta_only": false,
+  "ttt_hrope_frac": 0.5,
+  "ttt_hrope_gain": 1.0,
+  "ttt_hrope_hnorm": "none",
+  "ttt_hrope_interleave": false,
+  "ttt_hrope_min_layer": 0,
+  "ttt_hrope_theta": null,
+  "ttt_input_chunkq": 0,
+  "ttt_input_freq_tilt": null,
+  "ttt_input_theta": null,
+  "ttt_learnable_freqs": false,
+  "ttt_learnable_input_freqs": true,
+  "ttt_liere": 0,
+  "ttt_liere_init": "rope",
+  "ttt_loss_type": "dot_product",
+  "ttt_nope": false,
+  "ttt_perhead_freqs": false,
+  "ttt_prenorm": true,
+  "ttt_sharedf": false,
+  "ttt_value_rope": false,
+  "ttt_vrope_delta_only": true,
+  "ttt_vrope_frac": 0.5,
+  "ttt_vrope_gain": 1.0,
+  "ttt_vrope_theta": null,
+  "ttt_w1_precess": 0.0,
+  "use_cache": true,
+  "use_fused_kernel": false,
+  "use_momentum": true,
+  "use_muon": true,
+  "vocab_size": 32000,
+  "w0_w2_low_rank": 32,
+  "window_size": 1024
+}
+
+init low rank fast weight 4 192 192 32
+init low rank fast weight 4 192 192 32
+init low rank fast weight 4 192 192 32
+init low rank fast weight 4 192 192 32
+init low rank fast weight 4 192 192 32
+init low rank fast weight 4 192 192 32
+[model] param count: 71,239,548 (71.2M)
+[optzone] 6 dial params -> wd=0, lr x64.0
+[data] reusing cached val set /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/loop_TTT/lact/lact_llm_loop/val_cache_fla-hub_transformer-1.3B-100B_4096_ds42.pt (1998848 tokens)
+[train] steps=91552 bs=8 grad_accum=1 seq_len=4096 tokens/step=32768 token_budget~2,999,975,936
+[transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
+step=100 loss=8.5625 tokens/sec=104,774 lr=1.184e-04 tokens_seen=3,276,800
