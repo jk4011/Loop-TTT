@@ -83,8 +83,15 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
 ### W7. ★최우선★ 3다이얼+inner full — large LM (d768 3L×4, 3B tokens, ~1일/GPU)
-- [RUNNING node2 gpu0 2026-07-22 19:02] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
-  (node2 착수: GPU0 해제로 최우선 W7 claim. 429 대비 w7_retry.sh 래퍼(백오프)로 실행. 착수 후 W3 스트림 건강 감시.)
+- [FAILED 코드버그: FlashAttention fp32] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+  (**node2 진단: init 직후 `RuntimeError: FlashAttention only support fp16 and bf16 data type`
+  (flash_attn_interface.py:91 _flash_attn_forward). loop_inner="full" 경로에서 attention q/k/v가
+  fp32로 FlashAttention에 들어감 — 새 inner-affine(loop_qkv_s/b 등) 파라미터가 fp32라 autocast
+  밖에서 q/k/v dtype을 fp32로 올리거나, 그 경로가 bf16 autocast에 안 감싸인 것으로 추정.
+  스모크가 통과한 건 짧은 seq/eager-attn 경로로 FlashAttention을 안 탔기 때문으로 보임.
+  429 아님·일시적 아님 → 재시도 무의미. W3 스트림은 무사(2.33B/3B 계속). **node1 코드 수정 필요:**
+  loop_inner qkv/o affine 적용 후 q/k/v를 .to(bf16) 하거나 해당 블록을 autocast로 감쌀 것.
+  gpu0 반납.**)
   (구현 완료: layer_lact_swiglu qkv직후/o_proj직전 + LoopInnerMLP 은닉 affine, 스모크 통과.
   앵커: naive_3b 21.322 / ours(3다이얼)_3b_lr16 20.854 / orig_3l 25.085. **node1 권장** — node2는
   3B fineweb 스트림이 이미 1개 돌고 있어 HF 429 재발 위험. 429 시 지연 재시도 관례대로.)
