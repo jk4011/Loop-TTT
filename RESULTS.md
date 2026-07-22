@@ -799,6 +799,10 @@ zero-init affine을 넣는 사용자 아이디어. 16M/WikiText103, 12k steps, s
 - **정직한 요약**: FLOPs·파라미터는 ~0이지만 **wall-clock은 다이얼 −5~10%, inner 추가 시 −13~15%**.
   원인은 연산량이 아니라 (a) loop×site마다 eager elementwise 커널 런치(다이얼 적용 지점이
   block당 n_sub×n_loops회), (b) LM-large inner는 SwiGLU 언퓨즈(중간 h를 메모리 왕복).
-- 완화 여지: 다이얼 적용을 인접 LN/matmul에 퓨즈(torch.compile 영역 포함 또는 (1+s)를 weight에
-  접기 — inference에선 s,b를 qkv/o_proj/LN에 **완전 흡수 가능**(per-loop weight 4벌 사전계산,
-  looping이라 loop당 1회 스왑) → **추론 오버헤드 0 가능**). 훈련 오버헤드만 실비용.
+- 완화 (정정: "weight 4벌 folding"은 접은 행렬의 파라미터 압축 이점을 없앰 — 사용자 지적):
+  (a) **film ≡ per-loop LN affine**: LN 뒤 film은 γ'=γ(1+s), β'=β(1+s)+b로 LN 내장 affine에 정확히
+  흡수됨([n_loops,d] 테이블, 추가 elementwise pass 0회 — LN 커널이 어차피 affine 적용).
+  (b) gates/inner는 **matmul epilogue fusion**(bias+scale) 또는 addcmul 단일커널 — weight 복제 없음.
+  (c) LM decode(seq=1)는 weight-bound라 융합 없이도 사실상 공짜.
+  → **추론 ~0은 folding이 아니라 fusion으로**; 훈련 −5~15%는 eager 구현 아티팩트(activation 왕복+
+  퓨전 파괴+커널 런치)로 원리적 비용 아님. 정량 검증: 여유 GPU에서 compile/fused 벤치 예정.
