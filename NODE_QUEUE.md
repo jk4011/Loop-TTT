@@ -142,8 +142,21 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node1 gpu3] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
 
 ### W10. 절대 처리량 — 알맞은 baseline 포함 벤치 (사용자 요청: 비루프 모델 대비)
-- [RUNNING node2 gpu1 2026-07-22 22:52] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
+- [DONE 아래 8줄] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
   L8(고유깊이 iso-compute)/naive L2x4/gf/gf+inner × eager/compile 8줄 — 결과를 이 항목 DONE 노트에 그대로 기록.)
+  ```
+  d512_l8_eager: 4.570
+  d512_naive_eager: 4.615
+  d512_gf_eager: 4.008
+  d512_gfinner_eager: 3.112
+  d512_l8_compile: 9.587
+  d512_naive_compile: 9.630
+  d512_gf_compile: 9.410
+  d512_gfinner_compile: 8.288
+  ```
+  (**해석(compile): naive L2×4 9.630 ≈ L8 9.587 → naive loop와 고유깊이 L8이 iso-compute(처리량 동일)
+  임을 실측 확인. 다이얼 오버헤드: gf −2.3%, gf+inner −13.9%(8.288). d256(gf+inner −9%)보다 d512에서
+  약간 큼. 요지: gf+inner는 L8과 동급 계산으로 W1의 +0.66 품질을 얻음 — 오버헤드 한 자릿수~10%대.**)
 - [RUNNING node1 gpu0 2026-07-23 00:0x] bench_baselines_d256 — node1 직접 실행 중 (10런 ~1h)
 
 ## 완료 로그 (node2가 갱신)
