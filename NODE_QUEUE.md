@@ -54,5 +54,12 @@
 - [RUNNING node2 gpu2 2026-07-22 15:52] lm loop_ours_3b_lr8 — `./run_loop.sh 2 loop_ours_3b_lr8 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_param_lr_mult 8 --bs 8 --token_budget 3000000000` (lr 정점 미세화: 8 vs 16)
   (1차 시도 HF 429 rate-limit로 실패 — fineweb-edu 스트리밍이 IP-공유 창 초과. rate-limit 창 리셋 후 지연 재시도 중.)
 
+
+### W4. inner-affine "사이사이" (사용자 아이디어: 공유 행렬 사이 전 이음새에 loop별 affine)
+- [PENDING] r24_gf_inner_lr64_s95 — `bash chain_run.sh <g> r24_gf_inner_lr64_s95 config/loop_l2x4_gf_inner_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (gf 2다이얼 + attn/TTT qkv직후·c_proj직전 + MLP 은닉 affine. 비교: gf@64 +0.569)
+- [PENDING] r24_inner_only_lr64_s95 — gf 없이 inner만 (분리측정): config 필요시 gf_inner에서 loop_gates/film 끄고 생성
+  `bash chain_run.sh <g> r24_inner_only_lr64_s95 config/loop_l2x4_inner_only_d256_p16.yaml 95 --loop_param_lr_mult 64`
+
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.

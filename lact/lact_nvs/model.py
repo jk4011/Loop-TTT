@@ -44,6 +44,8 @@ class SelfAttention(nn.Module):
         causal=False,
         bias=False,
         out_gate=False,
+        loop_inner=False,
+        n_loops_max=1,
     ):
         super().__init__()
         assert dim % head_dim == 0
@@ -68,12 +70,22 @@ class SelfAttention(nn.Module):
         if out_gate:
             nn.init.zeros_(self.out_gate.weight)
             nn.init.zeros_(self.out_gate.bias)
+        # per-loop affine at the inter-matmul seams (after to_qkv; before c_proj)
+        self.loop_inner = loop_inner
+        if loop_inner:
+            self.loop_qkv_s = nn.Parameter(torch.zeros(n_loops_max, 3 * dim))
+            self.loop_qkv_b = nn.Parameter(torch.zeros(n_loops_max, 3 * dim))
+            self.loop_out_s = nn.Parameter(torch.zeros(n_loops_max, dim))
+            self.loop_out_b = nn.Parameter(torch.zeros(n_loops_max, dim))
 
-    def forward(self, x, *args):
+    def forward(self, x, info=None, *args):
         """
         x: (b, l, d)
         """
         qkv = self.to_qkv(x)
+        if self.loop_inner:
+            _li = min((info or {}).get("loop_idx", 0), self.loop_qkv_s.shape[0] - 1)
+            qkv = qkv * (1 + self.loop_qkv_s[_li]) + self.loop_qkv_b[_li]
         q, k, v = rearrange(qkv, "b l (qkv nh dh) -> qkv b nh l dh", qkv=3, dh=self.head_dim)
         if self.use_qk_norm:
             q = self.q_norm(q)
@@ -84,6 +96,8 @@ class SelfAttention(nn.Module):
             g = 2.0 * torch.sigmoid(self.out_gate(x))            # [b, l, nh]
             out = out * g.transpose(1, 2).unsqueeze(-1)          # per-head scale
         out = rearrange(out, "b nh l dh -> b l (nh dh)")
+        if self.loop_inner:
+            out = out * (1 + self.loop_out_s[_li]) + self.loop_out_b[_li]
 
         out = self.c_proj(out)
         return out, {}
@@ -91,16 +105,28 @@ class SelfAttention(nn.Module):
 
 class MLP(nn.Module):
 
-    def __init__(self, dim, inter_multi=4, bias=False):
+    def __init__(self, dim, inter_multi=4, bias=False, loop_hidden=False, n_loops_max=1):
         super().__init__()
         intermediate_dim = int(dim * inter_multi)
         self.c_fc = nn.Linear(dim, intermediate_dim, bias=bias)
         self.gelu = nn.GELU()
         self.c_proj = nn.Linear(intermediate_dim, dim, bias=bias)
+        # per-loop HIDDEN affine — the inner diagonal of the shared-matrix sandwich:
+        # y = W2 [ (1+s_l) * gelu(W1 x) + b_l ]. Sits between the tied matmuls,
+        # wrapping the nonlinearity, so the same weights compose into a genuinely
+        # different per-loop operator; not absorbable by LN (inside the module).
+        # zero-init -> exact baseline.
+        self.loop_hscale = None
+        if loop_hidden:
+            self.loop_hscale = nn.Parameter(torch.zeros(n_loops_max, intermediate_dim))
+            self.loop_hshift = nn.Parameter(torch.zeros(n_loops_max, intermediate_dim))
 
-    def forward(self, x, *args):
+    def forward(self, x, info=None, *args):
         x = self.c_fc(x)
         x = self.gelu(x)
+        if self.loop_hscale is not None:
+            li = min((info or {}).get("loop_idx", 0), self.loop_hscale.shape[0] - 1)
+            x = x * (1 + self.loop_hscale[li]) + self.loop_hshift[li]
         x = self.c_proj(x)
         return x, {}
 

@@ -360,7 +360,7 @@ def _loop_momentum_apply(
 
 class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
-    def __init__(self, *args, loop_mode="none", n_loops_max=8,
+    def __init__(self, *args, loop_mode="none", n_loops_max=8, loop_inner=False,
                  update_epochs=1, per_loop_init=False, read_refine=0.0,
                  momentum=0.0, precond_w1=0, precond_lambda=0.1, epavg=False,
                  muon_schedule=None, key_center=0.0, loop_temp=False,
@@ -406,6 +406,14 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             self.geo_k = nn.Linear(6, self.dim, bias=False)
             nn.init.zeros_(self.geo_q.weight)
             nn.init.zeros_(self.geo_k.weight)
+        # loop_inner: per-loop affine at every inter-matmul seam of this layer
+        # (after to_qkv, and after o_norm before c_proj). zero-init -> baseline.
+        self.loop_inner = loop_inner
+        if loop_inner:
+            self.loop_qkv_s = nn.Parameter(torch.zeros(n_loops_max, 3 * self.dim))
+            self.loop_qkv_b = nn.Parameter(torch.zeros(n_loops_max, 3 * self.dim))
+            self.loop_out_s = nn.Parameter(torch.zeros(n_loops_max, self.dim))
+            self.loop_out_b = nn.Parameter(torch.zeros(n_loops_max, self.dim))
         self.key_center = key_center  # >0 enables DC-decorrelation of keys
         if key_center > 0.0:
             self.key_center_gate = nn.Parameter(torch.zeros(1))  # zero-init = baseline
@@ -483,6 +491,9 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def forward(self, x: torch.Tensor, info={}, *args):
         qkv_pre = self.to_qkv(x)
+        if self.loop_inner:
+            _li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
+            qkv_pre = qkv_pre * (1 + self.loop_qkv_s[_li]) + self.loop_qkv_b[_li]
         if self.qkv_route > 0:
             li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
             qkv_pre = qkv_pre + (x @ self.qkv_a[li]) @ self.qkv_b[li]
@@ -644,6 +655,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         output = rearrange(
             output, "(b h) l d -> b l (h d)", h=self.num_heads, b=x.shape[0]
         )
+        if self.loop_inner:
+            output = output * (1 + self.loop_out_s[_li]) + self.loop_out_b[_li]
 
         output = self.c_proj(output)
         if "echo" in self.loop_flags and echo is not None:
