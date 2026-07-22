@@ -83,10 +83,11 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 
 ### W6. seed 승격 (단일-seed 발견의 3-seed 확정; 여유 GPU부터 위에서 순서대로)
 - [RUNNING node2 gpu1 2026-07-22 18:24] lm_affine_inner_s96 — W5 첫 항목과 같은 형식(run_lm_w5.sh 래퍼 가능), `--seed 96`, expname `lm_affine_inner_s96` (LM 최고치 55.20의 seed 재현 — 양태스크 주장 보강, ~1.5h)
-- [RUNNING node2 gpu5 2026-07-22 18:24] lm_inner_only_s96 — W5 셋째 항목과 같은 형식, `--seed 96`, expname `lm_inner_only_s96` ("inner 단독 > 3다이얼" 재현, ~1.5h)
+- [DONE ppl=57.13] lm_inner_only_s96 — W5 셋째 항목과 같은 형식, `--seed 96`, expname `lm_inner_only_s96` ("inner 단독 > 3다이얼" 재현, ~1.5h)
+  (**ppl 57.13 (s95 57.68과 일관) — inner_only가 3다이얼 59.14를 2-seed 모두 격파. affine_inner_s96 나오면 LM seed-promo 표로.**)
 - [RUNNING node2 gpu4 2026-07-22 18:36] r23_adaln_oz_s96 — `bash chain_run.sh 4 r23_adaln_oz_s96 config/loop_l2x4_adaln_d256_p16.yaml 96 --loop_param_lr_mult 64` (optzone-구제 +0.620의 seed 확인; paired 기준 r1_loop_l2x4_s96)
 - [RUNNING node2 gpu3 2026-07-22 18:42] r22_d512_gf_lr128_s96 — `bash chain_run.sh 3 r22_d512_gf_lr128_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 128` (d512 lr 정점 128 vs 64 판별)
-- [PENDING] r22_d512_gf_lr128_s97 — 같은 형식, seed 97, expname `r22_d512_gf_lr128_s97`
+- [RUNNING node2 gpu5 2026-07-22 18:52] r22_d512_gf_lr128_s97 — 같은 형식, seed 97, expname `r22_d512_gf_lr128_s97`
 - [PENDING] r23_adaln_oz_s97 — `bash chain_run.sh <g> r23_adaln_oz_s97 config/loop_l2x4_adaln_d256_p16.yaml 97 --loop_param_lr_mult 64`
 
 ## 완료 로그 (node2가 갱신)
