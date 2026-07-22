@@ -165,7 +165,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node1 gpu0 2026-07-23 00:5x] r26_loop_l1x8_s95 — `bash chain_run.sh 0 r26_loop_l1x8_s95 config/loop_l1x8_d256_p16.yaml 95` (naive L1×8 앵커. 비교: naive L2×4 22.204, L8 21.955)
 - [RUNNING node2 gpu1 2026-07-23 01:02] r26_l1x8_gf_s95 — `bash chain_run.sh 1 r26_l1x8_gf_s95 config/loop_l1x8_gates_film_d256_p16.yaml 95 --loop_param_lr_mult 64` (2다이얼; 다이얼 슬롯 8개)
 - [RUNNING node2 gpu2 2026-07-23 01:02] r26_l1x8_gfqkv_s95 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s95 config/loop_l1x8_gf_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (미니멀 처방: 다이얼+qkv측 inner)
-- [RUNNING node2 gpu5 2026-07-23 01:02] lm_l1x8_naive_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8.yaml lm_l1x8_naive_s95 outputs_lm_l1x8_naive.log` (LM 앵커. 비교: L2×4 naive 74.45)
+- [DONE ppl=86.73] lm_l1x8_naive_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8.yaml lm_l1x8_naive_s95 outputs_lm_l1x8_naive.log` (LM 앵커. 비교: L2×4 naive 74.45)
+  (**ppl 86.73 (14.57M) vs L2×4 naive 74.45 = +12.28 악화 — 고유 layer 1개의 다양성 손실 큼. affine/innerqkv가 이걸 얼마나 회복하는지가 L1×8 가설 검증.**)
 - [RUNNING node2 gpu3 2026-07-23 01:12] lm_l1x8_affine_s95 — `./run_lm_w5.sh 3 config/lm_loop_l1x8_affine.yaml lm_l1x8_affine_s95 outputs_lm_l1x8_affine.log` (3다이얼)
 - [RUNNING node2 gpu4 2026-07-23 01:12] lm_l1x8_innerqkv_s95 — `./run_lm_w5.sh 4 config/lm_loop_l1x8_innerqkv.yaml lm_l1x8_innerqkv_s95 outputs_lm_l1x8_innerqkv.log` (3다이얼+qkv측)
 - 판정 프레임: 각 태스크에서 (다이얼 이득 | L1×8) vs (다이얼 이득 | L2×4) — L1×8에서 이득이 더 크면
@@ -173,7 +174,7 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   낮은지(다양성 손실 크기)도 그 자체로 데이터.
 
 ### W12. LM 미니멀 처방 2-seed
-- [PENDING] lm_affine_innerqkv_s96 — `./run_lm_w5.sh <g> config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s96 outputs_lm_affine_innerqkv_s96.log --seed 96` (s95 55.81의 재현)
+- [RUNNING node2 gpu5 2026-07-23 01:20] lm_affine_innerqkv_s96 — `./run_lm_w5.sh 5 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s96 outputs_lm_affine_innerqkv_s96.log --seed 96` (s95 55.81의 재현)
 
 ### W13. ★대형 모델 절대 처리량★ (사용자 요청 — d256 벤치는 3.9M로 너무 작음)
 - [PENDING] bench_llm_throughput — lact/lact_llm_loop에서:
