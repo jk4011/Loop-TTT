@@ -36,7 +36,9 @@ if TYPE_CHECKING:
 class LoopInnerMLP(TransformerMLP):
     """GatedMLP + per-loop zero-init affine on the SwiGLU hidden (between the
     activation and down_proj) — the shared MLP acts as a different operator per
-    loop. Unfused on purpose: the affine sits inside the fused seam."""
+    loop. Fusion-preserving identity: W(h*(1+s)+b) = W(silu(g)*(u*(1+s))) + W b,
+    so the scale rides on the up branch (fused swiglu kernel intact) and the
+    shift becomes a per-loop output bias."""
 
     def __init__(self, *args, n_loops_max: int = 1, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,9 +47,12 @@ class LoopInnerMLP(TransformerMLP):
 
     def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         li = min(kwargs.get("loop_idx", 0), self.loop_hscale.shape[0] - 1)
-        h = nn.functional.silu(self.gate_proj(x)) * self.up_proj(x)
-        h = h * (1 + self.loop_hscale[li]) + self.loop_hshift[li]
-        return self.down_proj(h)
+        gate, y = self.gate_proj(x), self.up_proj(x)
+        y = y * (1 + self.loop_hscale[li])
+        shift_out = nn.functional.linear(self.loop_hshift[li], self.down_proj.weight)
+        if self.fuse_swiglu and self.hidden_act == 'swish':
+            return self.swiglu_linear(gate, y, self.down_proj.weight, self.down_proj.bias) + shift_out
+        return self.down_proj(nn.functional.silu(gate) * y) + shift_out
 
 
 class LaCTBlock(nn.Module):
