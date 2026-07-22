@@ -585,7 +585,10 @@ class LaCTSWIGLULayer(nn.Module):
         qkv = self.qkv(hidden_states)
         if self.loop_inner == "full":
             _li = min(kwargs.get("loop_idx", 0), self.loop_qkv_s.shape[0] - 1)
-            qkv = qkv * (1 + self.loop_qkv_s[_li]) + self.loop_qkv_b[_li]
+            # cast dials to activation dtype: fp32 dials would promote the bf16
+            # qkv to fp32, which flash-attn rejects
+            qkv = qkv * (1 + self.loop_qkv_s[_li].to(qkv.dtype)) \
+                + self.loop_qkv_b[_li].to(qkv.dtype)
         q, k, v = qkv.chunk(3, dim=-1)
         #### compute window attention first, then do ttt. ####
 
@@ -1050,7 +1053,8 @@ class LaCTSWIGLULayer(nn.Module):
         o = o + ttt_x_normed
         if self.loop_inner == "full":
             _li = min(kwargs.get("loop_idx", 0), self.loop_out_s.shape[0] - 1)
-            o = o * (1 + self.loop_out_s[_li]) + self.loop_out_b[_li]
+            o = o * (1 + self.loop_out_s[_li].to(o.dtype)) \
+                + self.loop_out_b[_li].to(o.dtype)
         o = self.o_proj(o)
 
         if not output_attentions:

@@ -62,10 +62,10 @@
   (t=27.7. NVS inner-affine 단독 +0.320 — 양성이나 gf 2다이얼 +0.569보다 약함(LM에선 inner_only가 3다이얼 격파 → 태스크 의존). gf_inner full 결과 나오면 RESULTS 함께 기록.)
 
 #### W4b. NVS inner 사이트 분해 (LM W5 결과가 attn/MLP-이음새 우세를 시사 → NVS에서 사이트 귀속)
-- [RUNNING node1 gpu0 2026-07-22 18:20] r24_gf_inner_ttt_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_ttt_lr64_s95 config/loop_l2x4_gf_inner_ttt_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + TTT 이음새만)
-- [RUNNING node1 gpu1 2026-07-22 18:20] r24_gf_inner_attn_lr64_s95 — `bash chain_run.sh 1 r24_gf_inner_attn_lr64_s95 config/loop_l2x4_gf_inner_attn_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + attn 이음새만)
-- [RUNNING node1 gpu2 2026-07-22 18:20] r24_gf_inner_mlp_lr64_s95 — `bash chain_run.sh 2 r24_gf_inner_mlp_lr64_s95 config/loop_l2x4_gf_inner_mlp_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + MLP 은닉만)
-- [RUNNING node1 gpu3 2026-07-22 18:20] r24_gf_inner_qkv_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s95 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + qkv측만, attn+TTT)
+- [RUNNING node1 gpu0 2026-07-22 21:26 (리셋 후 20k에서 재개)] r24_gf_inner_ttt_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_ttt_lr64_s95 config/loop_l2x4_gf_inner_ttt_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + TTT 이음새만)
+- [RUNNING node1 gpu1 2026-07-22 21:26 (재개)] r24_gf_inner_attn_lr64_s95 — `bash chain_run.sh 1 r24_gf_inner_attn_lr64_s95 config/loop_l2x4_gf_inner_attn_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + attn 이음새만)
+- [RUNNING node1 gpu2 2026-07-22 21:26 (재개)] r24_gf_inner_mlp_lr64_s95 — `bash chain_run.sh 2 r24_gf_inner_mlp_lr64_s95 config/loop_l2x4_gf_inner_mlp_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + MLP 은닉만)
+- [RUNNING node1 gpu3 2026-07-22 21:26 (재개)] r24_gf_inner_qkv_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s95 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + qkv측만, attn+TTT)
 - [DONE PSNR=22.763 Δ+0.559] r24_gf_inner_out_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_out_lr64_s95 config/loop_l2x4_gf_inner_out_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + 출력측(c_proj직전)만, attn+TTT)
   (node2: t=31.6. 출력측 inner만 = +0.559 ≈ gf 2다이얼 +0.569. W4b 사이트 분해표는 node1이 조립.)
 - 판정 프레임: 전부 vs gf@64 +0.569. full(진행중) vs 단일사이트 합 → 가산성; qkv vs out → 생성부/출력부; TTT vs attn/MLP → LM(W5)의 "TTT-이음새 무효" 재현 여부.
@@ -83,7 +83,11 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
 ### W7. ★최우선★ 3다이얼+inner full — large LM (d768 3L×4, 3B tokens, ~1일/GPU)
-- [FAILED 코드버그: FlashAttention fp32] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+- [PENDING] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+  (**dtype 버그 수정 완료(node1): fp32 다이얼×bf16 activation 승격이 원인 — qkv/out/MLP 3사이트에
+  `.to(activation.dtype)` 캐스트 추가. FlashAttention 경로 통과하는 재현 스크립트로 크래시 재현→수정→
+  autocast fwd/bwd 스모크 통과 확인. outputs/loop_oursinner_3b_lr16 잔해는 지우고 새로 시작할 것.
+  429 시 node2의 지연-재시도 래퍼 관례.**)
   (**node2 진단: init 직후 `RuntimeError: FlashAttention only support fp16 and bf16 data type`
   (flash_attn_interface.py:91 _flash_attn_forward). loop_inner="full" 경로에서 attention q/k/v가
   fp32로 FlashAttention에 들어감 — 새 inner-affine(loop_qkv_s/b 등) 파라미터가 fp32라 autocast
@@ -108,6 +112,15 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu5 2026-07-22 18:52] r22_d512_gf_lr128_s97 — 같은 형식, seed 97, expname `r22_d512_gf_lr128_s97`
 - [DONE PSNR=22.443 Δ+0.383] r23_adaln_oz_s97 — `bash chain_run.sh 1 r23_adaln_oz_s97 config/loop_l2x4_adaln_d256_p16.yaml 97 --loop_param_lr_mult 64`
   (**t=19.6. adaln optzone 3-seed 확정: +0.620/+0.598/+0.383 → 평균 +0.534, 3/3 유의. RESULTS.md 기록됨.**)
+
+### W8. 오버헤드 벤치 + NVS 최고구성 seed 승격 (node2 유휴 GPU용; W7 다음 순위)
+- [PENDING] bench_overhead — `bash bench_overhead.sh <g>` (lact/lact_nvs에서. naive/gf/gf+inner ×
+  eager/compile 6종, 600스텝씩 ~1.5h. /tmp/re10k 필요. 결과 6줄("name: it/s")을 이 항목 DONE 노트에
+  그대로 기록 — "compile이 다이얼 오버헤드를 얼마나 회수하는가" 측정이 목적. 체크포인트는 스크립트가
+  자동 삭제, eval 없음.)
+- [PENDING] r24_gf_inner_lr64_s96 — `bash chain_run.sh <g> r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
+  (NVS 최고 스택(s95 +0.660) seed 승격. paired 기준 r1_loop_l2x4_s96.)
+- [PENDING] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.

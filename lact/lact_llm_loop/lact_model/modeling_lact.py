@@ -48,8 +48,9 @@ class LoopInnerMLP(TransformerMLP):
     def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         li = min(kwargs.get("loop_idx", 0), self.loop_hscale.shape[0] - 1)
         gate, y = self.gate_proj(x), self.up_proj(x)
-        y = y * (1 + self.loop_hscale[li])
-        shift_out = nn.functional.linear(self.loop_hshift[li], self.down_proj.weight)
+        y = y * (1 + self.loop_hscale[li].to(y.dtype))
+        shift_out = nn.functional.linear(
+            self.loop_hshift[li].to(y.dtype), self.down_proj.weight.to(y.dtype))
         if self.fuse_swiglu and self.hidden_act == 'swish':
             return self.swiglu_linear(gate, y, self.down_proj.weight, self.down_proj.bias) + shift_out
         return self.down_proj(nn.functional.silu(gate) * y) + shift_out
