@@ -167,8 +167,11 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu2 2026-07-23 01:02] r26_l1x8_gfqkv_s95 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s95 config/loop_l1x8_gf_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (미니멀 처방: 다이얼+qkv측 inner)
 - [DONE ppl=86.73] lm_l1x8_naive_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8.yaml lm_l1x8_naive_s95 outputs_lm_l1x8_naive.log` (LM 앵커. 비교: L2×4 naive 74.45)
   (**ppl 86.73 (14.57M) vs L2×4 naive 74.45 = +12.28 악화 — 고유 layer 1개의 다양성 손실 큼. affine/innerqkv가 이걸 얼마나 회복하는지가 L1×8 가설 검증.**)
-- [RUNNING node2 gpu3 2026-07-23 01:12] lm_l1x8_affine_s95 — `./run_lm_w5.sh 3 config/lm_loop_l1x8_affine.yaml lm_l1x8_affine_s95 outputs_lm_l1x8_affine.log` (3다이얼)
-- [RUNNING node2 gpu4 2026-07-23 01:12] lm_l1x8_innerqkv_s95 — `./run_lm_w5.sh 4 config/lm_loop_l1x8_innerqkv.yaml lm_l1x8_innerqkv_s95 outputs_lm_l1x8_innerqkv.log` (3다이얼+qkv측)
+- [DONE ppl=64.02] lm_l1x8_affine_s95 — `./run_lm_w5.sh 3 config/lm_loop_l1x8_affine.yaml lm_l1x8_affine_s95 outputs_lm_l1x8_affine.log` (3다이얼)
+- [DONE ppl=61.43] lm_l1x8_innerqkv_s95 — `./run_lm_w5.sh 4 config/lm_loop_l1x8_innerqkv.yaml lm_l1x8_innerqkv_s95 outputs_lm_l1x8_innerqkv.log` (3다이얼+qkv측)
+  (**L1×8 LM 사다리 완성: naive 86.73 → 3다이얼 64.02(회복 −22.71) → +qkv-inner 61.43(회복 −25.30).
+  다이얼 회복이 L1×8에서 L2×4(−19.25/−18.64)보다 큼 → "다이얼 = 잃어버린 layer-다양성 압축 복원" 지지.
+  RESULTS.md 기록됨. NVS L1×8(r26_gf/gfqkv) 진행 중.**)
 - 판정 프레임: 각 태스크에서 (다이얼 이득 | L1×8) vs (다이얼 이득 | L2×4) — L1×8에서 이득이 더 크면
   "다이얼 = 잃어버린 layer-다양성의 파라미터 압축 복원" 서사 강화. naive L1×8이 L2×4보다 얼마나
   낮은지(다양성 손실 크기)도 그 자체로 데이터.
