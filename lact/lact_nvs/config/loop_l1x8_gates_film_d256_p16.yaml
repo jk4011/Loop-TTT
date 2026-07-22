@@ -1,11 +1,13 @@
-# Naive looped baseline: 2 unique layers cycled 4x (effective depth 8).
-# Fast weights RESET to learned init at each loop pass (attention-like looping).
+# Big-swing "gates": reset loop + Deja View branch/state gates + LT2 rho gate
+# (all zero-init, zero FLOPs).
 patch_size: 16
 dim: 256
 layers: 1
 n_loops: 8
 ttt_state_mode: reset
 input_injection: none
+loop_gates: true
+loop_film: true
 
 block_config:
   - type: model.SelfAttention

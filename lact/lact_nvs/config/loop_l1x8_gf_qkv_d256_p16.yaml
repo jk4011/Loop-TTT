@@ -1,11 +1,13 @@
-# Naive looped baseline: 2 unique layers cycled 4x (effective depth 8).
-# Fast weights RESET to learned init at each loop pass (attention-like looping).
+# gf + inner_qkv decomposition (inner-affine site ablation)
+# (all zero-init, zero FLOPs).
 patch_size: 16
 dim: 256
 layers: 1
 n_loops: 8
 ttt_state_mode: reset
 input_injection: none
+loop_gates: true
+loop_film: true
 
 block_config:
   - type: model.SelfAttention
@@ -13,13 +15,18 @@ block_config:
     params:
       head_dim: 64
       use_qk_norm: true
-  - type: lact_ttt.FastWeightGluMLPMultihead
+      loop_inner: qkv
+      n_loops_max: 8
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
     length_dim: vl
     params:
       head_dim: 256
       inter_multi: 2
       base_lr: 0.01
       muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 8
+      loop_inner: qkv
   - type: model.MLP
     length_dim: vl
     params:
