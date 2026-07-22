@@ -56,10 +56,10 @@
 
 
 ### W4. inner-affine "사이사이" (사용자 아이디어: 공유 행렬 사이 전 이음새에 loop별 affine)
-- [PENDING] r24_gf_inner_lr64_s95 — `bash chain_run.sh <g> r24_gf_inner_lr64_s95 config/loop_l2x4_gf_inner_d256_p16.yaml 95 --loop_param_lr_mult 64`
+- [RUNNING node2 gpu3 2026-07-22 16:44] r24_gf_inner_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_lr64_s95 config/loop_l2x4_gf_inner_d256_p16.yaml 95 --loop_param_lr_mult 64`
   (gf 2다이얼 + attn/TTT qkv직후·c_proj직전 + MLP 은닉 affine. 비교: gf@64 +0.569)
-- [PENDING] r24_inner_only_lr64_s95 — gf 없이 inner만 (분리측정): config 필요시 gf_inner에서 loop_gates/film 끄고 생성
-  `bash chain_run.sh <g> r24_inner_only_lr64_s95 config/loop_l2x4_inner_only_d256_p16.yaml 95 --loop_param_lr_mult 64`
+- [RUNNING node2 gpu4 2026-07-22 16:44] r24_inner_only_lr64_s95 — `bash chain_run.sh 4 r24_inner_only_lr64_s95 config/loop_l2x4_inner_only_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (config 존재 확인됨. gf 없이 inner만 — 분리측정)
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
