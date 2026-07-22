@@ -208,7 +208,7 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   그 d512 스케일 검증이 본 웨이브. RESULTS.md W9 절 참조.
 
 ### W13b. LM compile 회수 검증 (사용자 요청 — "compile 이식 여지" 실측)
-- [RUNNING node1 gpu0 2026-07-23] bench_llm_throughput+COMPILE — `BENCH_COMPILE=1 python bench_throughput.py` (per-block torch.compile; loop_idx별 재컴파일로 warmup 김. eager 대조는 W13 완료분.)
+- [DONE] bench_llm_throughput+COMPILE — 3다이얼 −11.1%→**−3.7%**, dials+inner −20.1%→**−7.2%** (compile, naive 대비). 회수 검증 완료, RESULTS.md W13b 절.
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
