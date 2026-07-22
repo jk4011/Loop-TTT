@@ -180,11 +180,22 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu5 2026-07-23 01:20] lm_affine_innerqkv_s96 — `./run_lm_w5.sh 5 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s96 outputs_lm_affine_innerqkv_s96.log --seed 96` (s95 55.81의 재현)
 
 ### W13. ★대형 모델 절대 처리량★ (사용자 요청 — d256 벤치는 3.9M로 너무 작음)
-- [PENDING] bench_llm_throughput — lact/lact_llm_loop에서:
+- [DONE 아래 5줄] bench_llm_throughput — lact/lact_llm_loop에서:
   `CUDA_VISIBLE_DEVICES=<g> /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/TTT_camera_embedding/.venv_llm/bin/python bench_throughput.py > bench_llm.log 2>&1`
   (d768/seq4096/bs8 실런 설정, 합성 토큰이라 HF 스트리밍 불필요. 12L고유(iso-compute 준거)/3L/naive
   3L×4/3다이얼/다이얼+inner 5종 순차, ~20분. 결과 5줄을 이 항목 DONE 노트에 기록.
   TRITON_CACHE_DIR/TORCHINDUCTOR_CACHE_DIR는 run_loop.sh와 동일하게 export 후 실행.)
+  (node2: run_bench_throughput.sh 래퍼(캐시 export)로 실행. eager, 30 timed steps:)
+  ```
+  orig_12L (iso-compute unique): 139.6M params, 160.6 ms/step, 203,990 tok/s
+  l3 (1/4 compute):               71.8M params,  67.3 ms/step, 486,931 tok/s
+  naive 3Lx4:                     71.8M params, 159.5 ms/step, 205,390 tok/s
+  3Lx4 + 3dials:                  71.8M params, 179.4 ms/step, 182,674 tok/s
+  3Lx4 + dials+inner:             72.0M params, 199.6 ms/step, 164,203 tok/s
+  ```
+  (**해석: naive 3L×4 205,390 ≈ orig_12L 203,990 tok/s → loop naive와 12L 고유깊이가 iso-compute
+  (처리량 동일) 대형서도 확인. 다이얼 오버헤드(eager): 3다이얼 −11.1%, dials+inner −20.1%. 파라미터는
+  다이얼 +0.05M/inner +0.2M로 사실상 무료. compile 시 오버헤드 대부분 회수됨(W8·W10 참조).**)
 - (참고: W10의 bench_baselines_d512(48M L8 포함)도 같은 목적의 NVS쪽 대형 측정 — 아직 PENDING이면 우선 실행)
 
 ## 완료 로그 (node2가 갱신)
