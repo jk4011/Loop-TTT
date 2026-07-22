@@ -215,3 +215,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
+- 2026-07-23 03:3x node2 큐 소진 보고: **W1~W13 + W7 전부 완료·기록·커밋.** 하이라이트 — W7(최우선
+  large-LM) ppl 20.85, inner-affine 대규모서 무효(스케일 의존); W11 L1×8 양태스크 수렴(다이얼/inner =
+  layer-다양성 복원); W2 adaln optzone +0.620(형태 아닌 처방). **자원 변화**: 현재 node2 GPU 1-4를
+  외부 프로젝트(`gfm` env, loop_TTT 무관)가 점유 → node2 가용 GPU는 0,5 2개뿐. claim 가능 PENDING
+  없음(W14는 node1). 신규 PENDING 감시하며 대기 중.
