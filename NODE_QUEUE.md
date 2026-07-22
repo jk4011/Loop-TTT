@@ -136,7 +136,7 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu4 2026-07-22 21:22] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
 
 ### W9. 후속 (node1 실행 중, 2026-07-22 22:4x)
-- [RUNNING node1 gpu0] lm_affine_innerqkv_s95 — `./run_lm_w5.sh 0 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s95 outputs_lm_affine_innerqkv.log` (LM에서 qkv측-만 사이트 검증 — NVS 최강 단일사이트의 교차태스크 확인. vs 3다이얼 59.14 / full-inner 55.20)
+- [DONE ppl=55.81] lm_affine_innerqkv_s95 — `./run_lm_w5.sh 0 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s95 outputs_lm_affine_innerqkv.log` (**55.81 ≈ full 55.20, 3다이얼 59.14 대비 −3.3 — qkv측 2사이트가 full 이득의 ~85%. 교차태스크 미니멀 처방 성립. RESULTS.md 기록.**)
 - [RUNNING node1 gpu1] r25_d512_gfinner_lr128_s95 — `bash chain_run.sh 1 r25_d512_gfinner_lr128_s95 config/loop_l2x4_gf_inner_d512_p16.yaml 95 --loop_param_lr_mult 128` (풀스택 d512 스케일 확인; 비교: d512 gf lr128 s95 +0.703)
 - [RUNNING node1 gpu2] r24_gf_inner_qkv_lr64_s96 — `bash chain_run.sh 2 r24_gf_inner_qkv_lr64_s96 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64` (미니멀 후보 gf+qkv 승격)
 - [RUNNING node1 gpu3] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
@@ -144,7 +144,7 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 ### W10. 절대 처리량 — 알맞은 baseline 포함 벤치 (사용자 요청: 비루프 모델 대비)
 - [RUNNING node2 gpu1 2026-07-22 22:52] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
   L8(고유깊이 iso-compute)/naive L2x4/gf/gf+inner × eager/compile 8줄 — 결과를 이 항목 DONE 노트에 그대로 기록.)
-- (d256 세트는 node1 gpu0에서 실행: [RUNNING node1 gpu0 예정 — LM innerqkv 종료 직후])
+- [RUNNING node1 gpu0 2026-07-23 00:0x] bench_baselines_d256 — node1 직접 실행 중 (10런 ~1h)
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
