@@ -141,5 +141,10 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node1 gpu2] r24_gf_inner_qkv_lr64_s96 — `bash chain_run.sh 2 r24_gf_inner_qkv_lr64_s96 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64` (미니멀 후보 gf+qkv 승격)
 - [RUNNING node1 gpu3] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
 
+### W10. 절대 처리량 — 알맞은 baseline 포함 벤치 (사용자 요청: 비루프 모델 대비)
+- [PENDING] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
+  L8(고유깊이 iso-compute)/naive L2x4/gf/gf+inner × eager/compile 8줄 — 결과를 이 항목 DONE 노트에 그대로 기록.)
+- (d256 세트는 node1 gpu0에서 실행: [RUNNING node1 gpu0 예정 — LM innerqkv 종료 직후])
+
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
