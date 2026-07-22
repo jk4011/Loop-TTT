@@ -107,8 +107,17 @@ class MLP(nn.Module):
 
 class Block(nn.Module):
     def __init__(self, dim, bias, block_config, n_loops_max=1, loop_film=False,
-                 loop_gates=False, loop_affine=False):
+                 loop_gates=False, loop_affine=False, loop_cond="none"):
         super().__init__()
+        # loop_cond: prior-work per-loop conditioning baselines for comparison.
+        #   "dvlt":  DVLT time-gates — sinusoidal embed of continuous (t_k, t_{k+1})
+        #            -> shared MLP -> per-submodule branch scales + stream scale
+        #            (GENERATED, scale-only; final layer zero-init -> identity).
+        #   "adaln": DiT adaLN-zero — loop-index embedding -> MLP -> per-submodule
+        #            (scale, shift, gate) (GENERATED scale+shift+gate, zero-init).
+        #   "layerscale": CaiT LayerScale, per-loop — DIRECT per-(loop, submodule)
+        #            channel scale, small-init (1e-5), multiplicative g*branch.
+        self.loop_cond = loop_cond
         module_list = []
         self.length_dim_list = []
 
@@ -152,6 +161,35 @@ class Block(nn.Module):
             assert loop_gates, "loop_affine extends loop_gates"
             self.branch_shift = nn.Parameter(torch.zeros(n_loops_max, len(block_config), dim))
             self.state_shift = nn.Parameter(torch.zeros(n_loops_max, dim))
+        n_sub = len(block_config)
+        self.n_loops_max = n_loops_max
+        if loop_cond == "dvlt":
+            # sinusoidal features of (t_k, t_{k+1}), t on [0,1]; shared MLP emits
+            # (n_sub branch scales + 1 stream scale) x dim; out zero-init -> 1+0.
+            self.dvlt_mlp = nn.Sequential(
+                nn.Linear(64, 128), nn.SiLU(), nn.Linear(128, (n_sub + 1) * dim))
+            nn.init.zeros_(self.dvlt_mlp[2].weight)
+            nn.init.zeros_(self.dvlt_mlp[2].bias)
+            freqs = torch.exp(torch.linspace(0, math.log(1000), 16))
+            t = torch.arange(n_loops_max + 1, dtype=torch.float32) / n_loops_max
+            def sin_embed(x):  # [L] -> [L, 32]
+                a = x[:, None] * freqs[None, :]
+                return torch.cat([torch.sin(a), torch.cos(a)], dim=-1)
+            emb = torch.cat([sin_embed(t[:-1]), sin_embed(t[1:])], dim=-1)  # [n_loops, 64]
+            self.register_buffer("dvlt_temb", emb)
+        elif loop_cond == "adaln":
+            # DiT adaLN-zero: loop embedding -> MLP -> per-submodule (scale, shift,
+            # gate); final layer zero-init -> exact identity at start.
+            self.adaln_emb = nn.Embedding(n_loops_max, 128)
+            self.adaln_mlp = nn.Sequential(
+                nn.SiLU(), nn.Linear(128, n_sub * 3 * dim))
+            nn.init.zeros_(self.adaln_mlp[1].weight)
+            nn.init.zeros_(self.adaln_mlp[1].bias)
+        elif loop_cond == "layerscale":
+            # CaiT LayerScale per loop: direct channel scale on each branch output,
+            # small-init (their convention), pure multiplicative.
+            self.lscale = nn.Parameter(
+                torch.full((n_loops_max, n_sub, dim), 1e-5))
 
     def forward(self, x, info):
         results = {}
@@ -161,12 +199,22 @@ class Block(nn.Module):
             # annealing); extra passes reuse the last slot.
             n_slots = (self.loop_film if self.loop_film is not None else self.branch_gate).shape[0]
             loop_idx = min(loop_idx, n_slots - 1)
+        dvlt_s = adaln_v = None
+        if self.loop_cond == "dvlt":
+            li = min(loop_idx, self.n_loops_max - 1)
+            dvlt_s = self.dvlt_mlp(self.dvlt_temb[li]).view(-1, x.shape[-1])
+        elif self.loop_cond == "adaln":
+            li = min(loop_idx, self.n_loops_max - 1)
+            adaln_v = self.adaln_mlp(self.adaln_emb.weight[li]).view(
+                len(self.module_list), 3, x.shape[-1])
         for mod_idx, (module, length_dim) in enumerate(zip(self.module_list, self.length_dim_list)):
             residual = x
             x = module["ln"](x)
             if self.loop_film is not None:
                 film = self.loop_film[loop_idx, mod_idx]
                 x = x * (1 + film[0]) + film[1]
+            if adaln_v is not None:
+                x = x * (1 + adaln_v[mod_idx, 0]) + adaln_v[mod_idx, 1]
 
             if length_dim == "l":
                 b, vl, d = x.shape
@@ -181,12 +229,22 @@ class Block(nn.Module):
                 x = x * (1 + self.branch_gate[loop_idx, mod_idx])
                 if self.branch_shift is not None:
                     x = x + self.branch_shift[loop_idx, mod_idx]
+            if dvlt_s is not None:
+                x = x * (1 + dvlt_s[mod_idx])
+            if adaln_v is not None:
+                # DiT convention: zero-init gate multiplies the branch (starts OFF)
+                x = x * adaln_v[mod_idx, 2]
+            if self.loop_cond == "layerscale":
+                li = min(loop_idx, self.n_loops_max - 1)
+                x = x * self.lscale[li, mod_idx]
             x = residual + x
             results.update(result)
         if self.branch_gate is not None:
             x = x * (1 + self.state_gate[loop_idx])
             if self.branch_shift is not None:
                 x = x + self.state_shift[loop_idx]
+        if dvlt_s is not None:
+            x = x * (1 + dvlt_s[len(self.module_list)])
         return x, results
 
 
@@ -234,6 +292,7 @@ class LaCTLVSM(nn.Module):
                  n_loops=1, ttt_state_mode="reset", input_injection="none",
                  loop_film=False, view_schedule="all", update_chunks=1,
                  render_feedback=False, target_loops=0, loop_gates=False, loop_affine=False,
+                 loop_cond="none", ut_embed=False,
                  input_loops=0, feat_mom=False, geo_addr=False,
                  stream_norm=False, fused_readout=False, drop_loop=0.0,
                  transductive_write=False):
@@ -303,12 +362,21 @@ class LaCTLVSM(nn.Module):
         self.blocks = nn.ModuleList([
             Block(dim=self.dim, bias=False, block_config=block_config,
                   n_loops_max=n_loops, loop_film=loop_film, loop_gates=loop_gates,
-                  loop_affine=loop_affine)
+                  loop_affine=loop_affine, loop_cond=loop_cond)
             for _ in range(layers)
         ])
         # LT2-style per-loop residual gate on the whole loop body:
         # x <- x + loop_rho[l] * x_loop_start (zero-init).
         self.loop_rho = nn.Parameter(torch.zeros(n_loops, dim)) if loop_gates else None
+        # Universal-Transformer-style additive timestep embedding at each loop start
+        # (fixed sinusoid -> zero-init projection so it starts as exact baseline).
+        self.ut_proj = None
+        if ut_embed:
+            freqs = torch.exp(torch.linspace(0, math.log(1000), dim // 2))
+            t = torch.arange(n_loops, dtype=torch.float32)[:, None] * freqs[None, :]
+            self.register_buffer("ut_temb", torch.cat([torch.sin(t), torch.cos(t)], dim=-1))
+            self.ut_proj = nn.Linear(dim, dim, bias=False)
+            nn.init.zeros_(self.ut_proj.weight)
         # feat_mom: Anderson/Nesterov extrapolation of the feature fixed-point
         # iteration. At loop start, x <- x + beta[loop] * (x - x_prev): the loop's
         # own convergence direction is extrapolated -> fractional extra depth at ~0
@@ -484,6 +552,9 @@ class LaCTLVSM(nn.Module):
                 x = x[:, num_input_tokens:]  # drop input tokens; memory is written
             if loop_idx > 0 and x0 is not None:
                 x = x + x0
+            if self.ut_proj is not None:
+                # UT-style additive timestep embedding (zero-init proj -> baseline)
+                x = x + self.ut_proj(self.ut_temb[min(loop_idx, self.ut_temb.shape[0] - 1)])
             if self.stream_norm is not None and loop_idx > 0:
                 x_hat = x * x.float().pow(2).mean(-1, keepdim=True).add(1e-6).rsqrt().to(x.dtype)
                 x = x + self.stream_norm[loop_idx] * (x_hat - x)
