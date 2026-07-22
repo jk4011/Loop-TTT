@@ -4,13 +4,17 @@
 # naive 3Lx4 loop, +3 dials, +dials+inner. All fp32 params + bf16 autocast + AdamW,
 # no gradient checkpointing (same as train_small).
 # Usage: CUDA_VISIBLE_DEVICES=<g> python bench_throughput.py
-import sys, time, torch
+# BENCH_COMPILE=1: torch.compile each LaCTBlock (per-block scope — robust with the
+# HF cache/flash-attn outer loop; the dials all live inside blocks, which is the
+# fusion surface under test). Longer warmup to absorb compilation.
+import os, sys, time, torch
 sys.path.insert(0, ".")
 from lact_model.configuration_lact_swiglu import LaCTSWIGLUConfig
 from lact_model.modeling_lact import LaCTForCausalLM
 import train_small as ts
 
-BS, SEQ, WARM, MEAS = 8, 4096, 10, 30
+COMPILE = os.environ.get("BENCH_COMPILE", "0") == "1"
+BS, SEQ, WARM, MEAS = 8, 4096, (25 if COMPILE else 10), 30
 BASE = dict(hidden_size=768, num_attn_heads=12, num_lact_heads=4,
             lact_chunk_size=1024, window_size=1024, vocab_size=32000,
             max_position_embeddings=4096, fuse_cross_entropy=True)
@@ -30,6 +34,9 @@ class A:
 def bench(name, kw):
     torch.manual_seed(0)
     m = LaCTForCausalLM(LaCTSWIGLUConfig(**BASE, **kw)).cuda()
+    if COMPILE:
+        for i in range(len(m.model.layers)):
+            m.model.layers[i] = torch.compile(m.model.layers[i])
     n_par = sum(p.numel() for p in m.parameters())
     opt = ts.build_optimizer(m, A())
     x = torch.randint(0, 32000, (BS, SEQ), device="cuda")
@@ -51,7 +58,8 @@ def bench(name, kw):
     del m, opt
     torch.cuda.empty_cache()
 
-print(f"=== LM-LARGE THROUGHPUT BENCH (d768 seq{SEQ} bs{BS}, eager, "
+print(f"=== LM-LARGE THROUGHPUT BENCH (d768 seq{SEQ} bs{BS}, "
+      f"{'per-block torch.compile' if COMPILE else 'eager'}, "
       f"{MEAS} timed steps) ===", flush=True)
 for name, kw in VARIANTS:
     bench(name, kw)

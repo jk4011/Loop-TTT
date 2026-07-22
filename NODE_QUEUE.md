@@ -199,13 +199,16 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   (**해석: naive 3L×4 205,390 ≈ orig_12L 203,990 tok/s → loop naive와 12L 고유깊이가 iso-compute
   (처리량 동일) 대형서도 확인. 다이얼 오버헤드(eager): 3다이얼 −11.1%, dials+inner −20.1%. 파라미터는
   다이얼 +0.05M/inner +0.2M로 사실상 무료. compile 시 오버헤드 대부분 회수됨(W8·W10 참조).**)
-- [RUNNING node1 gpu1 2026-07-23 03:0x] bench_baselines_d512 — `bash bench_baselines.sh 1 d512` (node1이 직접 실행; gpu0 훈련 1개 동시라 절대값에 소폭 경합 있음, 세션 내 상대비교 유효)
+- [DONE — RESULTS.md W10-d512 절 참조. 핵심: compile서 gf −1.6%(공짜), gf+inner −12%] bench_baselines_d512 — `bash bench_baselines.sh 1 d512` (node1이 직접 실행; gpu0 훈련 1개 동시라 절대값에 소폭 경합 있음, 세션 내 상대비교 유효)
 
 ### W14. d512 풀스택 seed 승격 (+0.767 s95의 확정)
 - [RUNNING node1 gpu2 2026-07-23 03:0x] r25_d512_gfinner_lr128_s96 — `bash chain_run.sh 2 r25_d512_gfinner_lr128_s96 config/loop_l2x4_gf_inner_d512_p16.yaml 96 --loop_param_lr_mult 128` (paired 기준 r22_d512_naive_s96)
 - [RUNNING node1 gpu3 2026-07-23 03:0x] r25_d512_gfinner_lr128_s97 — 같은 형식, seed 97 (paired 기준 r22_d512_naive_s97)
 - 큐 노트: qkv-only 가산이 NVS 3-seed에서 무너짐(+0.019, s97 음성) → NVS 대표 구성은 full inner로 확정,
   그 d512 스케일 검증이 본 웨이브. RESULTS.md W9 절 참조.
+
+### W13b. LM compile 회수 검증 (사용자 요청 — "compile 이식 여지" 실측)
+- [RUNNING node1 gpu0 2026-07-23] bench_llm_throughput+COMPILE — `BENCH_COMPILE=1 python bench_throughput.py` (per-block torch.compile; loop_idx별 재컴파일로 warmup 김. eager 대조는 W13 완료분.)
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
