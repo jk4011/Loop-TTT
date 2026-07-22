@@ -131,9 +131,10 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   (**해석: eager에선 gf+inner가 naive 대비 −31%(7.40→5.12), gf만은 −11%. compile 하에선 gf+inner
   −9.0%(15.33→13.96), gf만 −7.7% — compile이 다이얼/inner 오버헤드의 대부분을 회수(−31%→−9%),
   절대 처리량도 ~2배. 실사용은 compile 필수, 그때 다이얼 비용은 한 자릿수 %.**)
-- [RUNNING node2 gpu3 2026-07-22 21:22] r24_gf_inner_lr64_s96 — `bash chain_run.sh 3 r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
-  (NVS 최고 스택(s95 +0.660) seed 승격. paired 기준 r1_loop_l2x4_s96.)
-- [RUNNING node2 gpu4 2026-07-22 21:22] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
+- [DONE PSNR=22.639 Δ+0.551] r24_gf_inner_lr64_s96 — `bash chain_run.sh 3 r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
+  (NVS 최고 스택(s95 +0.660) seed 승격. paired 기준 r1_loop_l2x4_s96. t=30.6.)
+- [DONE PSNR=22.694 Δ+0.634] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
+  (**t=25.7. NVS gf+inner full 3-seed 확정: +0.660/+0.551/+0.634 → 평균 +0.615, 3/3 유의. RESULTS.md 기록됨.**)
 
 ### W9. 후속 (node1 실행 중, 2026-07-22 22:4x)
 - [DONE ppl=55.81] lm_affine_innerqkv_s95 — `./run_lm_w5.sh 0 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s95 outputs_lm_affine_innerqkv.log` (**55.81 ≈ full 55.20, 3다이얼 59.14 대비 −3.3 — qkv측 2사이트가 full 이득의 ~85%. 교차태스크 미니멀 처방 성립. RESULTS.md 기록.**)
@@ -165,8 +166,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu1 2026-07-23 01:02] r26_l1x8_gf_s95 — `bash chain_run.sh 1 r26_l1x8_gf_s95 config/loop_l1x8_gates_film_d256_p16.yaml 95 --loop_param_lr_mult 64` (2다이얼; 다이얼 슬롯 8개)
 - [RUNNING node2 gpu2 2026-07-23 01:02] r26_l1x8_gfqkv_s95 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s95 config/loop_l1x8_gf_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (미니멀 처방: 다이얼+qkv측 inner)
 - [RUNNING node2 gpu5 2026-07-23 01:02] lm_l1x8_naive_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8.yaml lm_l1x8_naive_s95 outputs_lm_l1x8_naive.log` (LM 앵커. 비교: L2×4 naive 74.45)
-- [PENDING] lm_l1x8_affine_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8_affine.yaml lm_l1x8_affine_s95 outputs_lm_l1x8_affine.log` (3다이얼)
-- [PENDING] lm_l1x8_innerqkv_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8_innerqkv.yaml lm_l1x8_innerqkv_s95 outputs_lm_l1x8_innerqkv.log` (3다이얼+qkv측)
+- [RUNNING node2 gpu3 2026-07-23 01:12] lm_l1x8_affine_s95 — `./run_lm_w5.sh 3 config/lm_loop_l1x8_affine.yaml lm_l1x8_affine_s95 outputs_lm_l1x8_affine.log` (3다이얼)
+- [RUNNING node2 gpu4 2026-07-23 01:12] lm_l1x8_innerqkv_s95 — `./run_lm_w5.sh 4 config/lm_loop_l1x8_innerqkv.yaml lm_l1x8_innerqkv_s95 outputs_lm_l1x8_innerqkv.log` (3다이얼+qkv측)
 - 판정 프레임: 각 태스크에서 (다이얼 이득 | L1×8) vs (다이얼 이득 | L2×4) — L1×8에서 이득이 더 크면
   "다이얼 = 잃어버린 layer-다양성의 파라미터 압축 복원" 서사 강화. naive L1×8이 L2×4보다 얼마나
   낮은지(다양성 손실 크기)도 그 자체로 데이터.
