@@ -41,8 +41,8 @@
 - 기록: **W1 완료. d512 3-seed 확정: gf@lr64 평균 +0.587, gf@lr16 평균 +0.287 (3/3 양성). RESULTS.md 기록됨.**
 
 ### W2. 기존방법 baseline + optzone 분해 (W1 끝나는 GPU부터)
-- [RUNNING node2 gpu0 2026-07-22 15:38] r23_dvlt_oz_s95 — `bash chain_run.sh 0 r23_dvlt_oz_s95 config/loop_l2x4_dvlt_d256_p16.yaml 95 --loop_param_lr_mult 64`
-  (LOOP_PARAM_KEYS에 dvlt_mlp 추가 완료: commit e1f064d. dvlt_temb은 buffer라 제외.)
+- [DONE PSNR=22.193 Δ-0.011] r23_dvlt_oz_s95 — `bash chain_run.sh 0 r23_dvlt_oz_s95 config/loop_l2x4_dvlt_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (LOOP_PARAM_KEYS에 dvlt_mlp 추가 완료: commit e1f064d. dvlt_temb은 buffer라 제외. optzone가 표준-옵티 -0.09를 ≈0으로 회복, 그러나 gates+film +0.569엔 못 미침 — 형태 문제.)
 - [RUNNING node2 gpu1 2026-07-22 15:38] r23_adaln_oz_s95 — `bash chain_run.sh 1 r23_adaln_oz_s95 config/loop_l2x4_adaln_d256_p16.yaml 95 --loop_param_lr_mult 64`
   (adaln_emb/adaln_mlp 키 추가 완료: commit e1f064d.)
 - [RUNNING node1 gpu2 2026-07-22 15:46] r23_layerscale_oz_s95 — `bash chain_run.sh <g> r23_layerscale_oz_s95 config/loop_l2x4_layerscale_d256_p16.yaml 95 --loop_param_lr_mult 64`
@@ -66,7 +66,7 @@
 naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu5 2026-07-22 16:48] lm_affine_inner_s95 — `CUDA_VISIBLE_DEVICES=<g> /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin/python train_lm.py --config config/lm_loop_l2x4_affine_inner.yaml --expname lm_affine_inner_s95 --data_dir /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/dataset/wikitext103_gpt2 --steps 12000 --bs 16 --seed 95 --val_every 3000 --loop_param_lr_mult 64 > outputs_lm_affine_inner.log 2>&1` (3다이얼+inner full; vs 59.14)
   (node2: TRITON/INDUCTOR 캐시 export 위해 run_lm_w5.sh 래퍼로 실행. 나머지 2개는 gpu0/1 비면 투입.)
-- [PENDING] lm_affine_innerttt_s95 — 같은 형식, config `lm_loop_l2x4_affine_innerttt.yaml`, expname `lm_affine_innerttt_s95`, 로그 `outputs_lm_affine_innerttt.log` (TTT inner만)
+- [RUNNING node2 gpu0 2026-07-22 17:14] lm_affine_innerttt_s95 — 같은 형식, config `lm_loop_l2x4_affine_innerttt.yaml`, expname `lm_affine_innerttt_s95`, 로그 `outputs_lm_affine_innerttt.log` (TTT inner만) — run_lm_w5.sh 래퍼 사용
 - [PENDING] lm_inner_only_s95 — 같은 형식, config `lm_loop_l2x4_inner_only.yaml`, expname `lm_inner_only_s95`, 로그 `outputs_lm_inner_only.log` (inner만; vs naive 74.45)
 - 주의: 실행 dir은 lact/lact_nvs (train_lm.py 위치). launch_exp의 TRITON/INDUCTOR 캐시 export 복사할 것.
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
