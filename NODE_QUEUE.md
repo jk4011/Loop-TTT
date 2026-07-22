@@ -83,8 +83,11 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
 ### W7. ★최우선★ 3다이얼+inner full — large LM (d768 3L×4, 3B tokens, ~1일/GPU)
-- [RUNNING node2 gpu0 2026-07-22 21:22] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
-  (node2 재착수: node1 dtype 수정(layer_lact_swiglu.py:590/1056, modeling_lact.py:51 .to(dtype)) pull 확인, 스테일 outputs 삭제 후 w7_retry.sh 래퍼로 gpu0 시작. 착수 후 스텝 진입 검증 예정.)
+- [DONE ppl=20.85] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+  (**★W7 완료★ VAL ppl 20.85 (3B, 91552 steps). vs ours(3다이얼만) 20.854 ≈ 동일 — 3B/d768 대규모에선
+  inner-affine이 3다이얼 위에 이득 없음(16M에선 −3.94 도움됐던 것과 대조 → inner 이득은 스케일 의존,
+  대규모서 소멸). naive_3b 21.322 대비 −0.47은 다이얼 몫. dtype 재착수 성공. RESULTS.md 기록됨.**)
+  (node2 재착수: node1 dtype 수정(layer_lact_swiglu.py:590/1056, modeling_lact.py:51 .to(dtype)) pull 확인, 스테일 outputs 삭제 후 w7_retry.sh 래퍼로 gpu0 시작. 스텝 진입 검증 완료(FlashAttention 통과).)
   (**dtype 버그 수정 완료(node1): fp32 다이얼×bf16 activation 승격이 원인 — qkv/out/MLP 3사이트에
   `.to(activation.dtype)` 캐스트 추가. FlashAttention 경로 통과하는 재현 스크립트로 크래시 재현→수정→
   autocast fwd/bwd 스모크 통과 확인. outputs/loop_oursinner_3b_lr16 잔해는 지우고 새로 시작할 것.
