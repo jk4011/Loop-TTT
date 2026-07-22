@@ -45,7 +45,7 @@
   (LOOP_PARAM_KEYS에 dvlt_mlp 추가 완료: commit e1f064d. dvlt_temb은 buffer라 제외.)
 - [RUNNING node2 gpu1 2026-07-22 15:38] r23_adaln_oz_s95 — `bash chain_run.sh 1 r23_adaln_oz_s95 config/loop_l2x4_adaln_d256_p16.yaml 95 --loop_param_lr_mult 64`
   (adaln_emb/adaln_mlp 키 추가 완료: commit e1f064d.)
-- [PENDING] r23_layerscale_oz_s95 — `bash chain_run.sh <g> r23_layerscale_oz_s95 config/loop_l2x4_layerscale_d256_p16.yaml 95 --loop_param_lr_mult 64`
+- [RUNNING node1 gpu2 2026-07-22 15:46] r23_layerscale_oz_s95 — `bash chain_run.sh <g> r23_layerscale_oz_s95 config/loop_l2x4_layerscale_d256_p16.yaml 95 --loop_param_lr_mult 64`
   (lscale 키 추가 완료: commit e1f064d. W1 gf 런 종료 GPU에 투입 예정.)
 - 기록: 표준-옵티마이저 버전(r23_*, node1에서 실행 중)과 나란히 표로 — "형태 vs 옵티마이저" 분해가 목적.
 
