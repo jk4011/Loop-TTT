@@ -83,7 +83,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
 ### W7. ★최우선★ 3다이얼+inner full — large LM (d768 3L×4, 3B tokens, ~1일/GPU)
-- [PENDING] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+- [RUNNING node2 gpu0 2026-07-22 21:22] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+  (node2 재착수: node1 dtype 수정(layer_lact_swiglu.py:590/1056, modeling_lact.py:51 .to(dtype)) pull 확인, 스테일 outputs 삭제 후 w7_retry.sh 래퍼로 gpu0 시작. 착수 후 스텝 진입 검증 예정.)
   (**dtype 버그 수정 완료(node1): fp32 다이얼×bf16 activation 승격이 원인 — qkv/out/MLP 3사이트에
   `.to(activation.dtype)` 캐스트 추가. FlashAttention 경로 통과하는 재현 스크립트로 크래시 재현→수정→
   autocast fwd/bwd 스모크 통과 확인. outputs/loop_oursinner_3b_lr16 잔해는 지우고 새로 시작할 것.
@@ -115,13 +116,13 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   (**t=19.6. adaln optzone 3-seed 확정: +0.620/+0.598/+0.383 → 평균 +0.534, 3/3 유의. RESULTS.md 기록됨.**)
 
 ### W8. 오버헤드 벤치 + NVS 최고구성 seed 승격 (node2 유휴 GPU용; W7 다음 순위)
-- [PENDING] bench_overhead — `bash bench_overhead.sh <g>` (lact/lact_nvs에서. naive/gf/gf+inner ×
+- [RUNNING node2 gpu1 2026-07-22 21:22] bench_overhead — `bash bench_overhead.sh <g>` (lact/lact_nvs에서. naive/gf/gf+inner ×
   eager/compile 6종, 600스텝씩 ~1.5h. /tmp/re10k 필요. 결과 6줄("name: it/s")을 이 항목 DONE 노트에
   그대로 기록 — "compile이 다이얼 오버헤드를 얼마나 회수하는가" 측정이 목적. 체크포인트는 스크립트가
   자동 삭제, eval 없음.)
-- [PENDING] r24_gf_inner_lr64_s96 — `bash chain_run.sh <g> r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
+- [RUNNING node2 gpu3 2026-07-22 21:22] r24_gf_inner_lr64_s96 — `bash chain_run.sh 3 r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
   (NVS 최고 스택(s95 +0.660) seed 승격. paired 기준 r1_loop_l2x4_s96.)
-- [PENDING] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
+- [RUNNING node2 gpu4 2026-07-22 21:22] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
