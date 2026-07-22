@@ -177,7 +177,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   낮은지(다양성 손실 크기)도 그 자체로 데이터.
 
 ### W12. LM 미니멀 처방 2-seed
-- [RUNNING node2 gpu5 2026-07-23 01:20] lm_affine_innerqkv_s96 — `./run_lm_w5.sh 5 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s96 outputs_lm_affine_innerqkv_s96.log --seed 96` (s95 55.81의 재현)
+- [DONE ppl=55.79] lm_affine_innerqkv_s96 — `./run_lm_w5.sh 5 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s96 outputs_lm_affine_innerqkv_s96.log --seed 96` (s95 55.81의 재현)
+  (**ppl 55.79 (s95 55.81) → 평균 55.80, ±0.02 매우 안정. LM 미니멀 처방(다이얼+qkv-inner) 2-seed 확정. RESULTS.md 기록됨.**)
 
 ### W13. ★대형 모델 절대 처리량★ (사용자 요청 — d256 벤치는 3.9M로 너무 작음)
 - [DONE 아래 5줄] bench_llm_throughput — lact/lact_llm_loop에서:
