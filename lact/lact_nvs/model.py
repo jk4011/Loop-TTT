@@ -70,21 +70,25 @@ class SelfAttention(nn.Module):
         if out_gate:
             nn.init.zeros_(self.out_gate.weight)
             nn.init.zeros_(self.out_gate.bias)
-        # per-loop affine at the inter-matmul seams (after to_qkv; before c_proj)
-        self.loop_inner = loop_inner
-        if loop_inner:
+        # per-loop affine at the inter-matmul seams. loop_inner in
+        # {False, True/"both", "qkv", "out"} — params created only for enabled sites.
+        self.loop_inner = "both" if loop_inner is True else loop_inner
+        self.loop_qkv_s = self.loop_out_s = None
+        if self.loop_inner in ("both", "qkv"):
             self.loop_qkv_s = nn.Parameter(torch.zeros(n_loops_max, 3 * dim))
             self.loop_qkv_b = nn.Parameter(torch.zeros(n_loops_max, 3 * dim))
+        if self.loop_inner in ("both", "out"):
             self.loop_out_s = nn.Parameter(torch.zeros(n_loops_max, dim))
             self.loop_out_b = nn.Parameter(torch.zeros(n_loops_max, dim))
+        self._nlm = n_loops_max
 
     def forward(self, x, info=None, *args):
         """
         x: (b, l, d)
         """
         qkv = self.to_qkv(x)
-        if self.loop_inner:
-            _li = min((info or {}).get("loop_idx", 0), self.loop_qkv_s.shape[0] - 1)
+        _li = min((info or {}).get("loop_idx", 0), self._nlm - 1) if self.loop_inner else 0
+        if self.loop_qkv_s is not None:
             qkv = qkv * (1 + self.loop_qkv_s[_li]) + self.loop_qkv_b[_li]
         q, k, v = rearrange(qkv, "b l (qkv nh dh) -> qkv b nh l dh", qkv=3, dh=self.head_dim)
         if self.use_qk_norm:
@@ -96,7 +100,7 @@ class SelfAttention(nn.Module):
             g = 2.0 * torch.sigmoid(self.out_gate(x))            # [b, l, nh]
             out = out * g.transpose(1, 2).unsqueeze(-1)          # per-head scale
         out = rearrange(out, "b nh l dh -> b l (nh dh)")
-        if self.loop_inner:
+        if self.loop_out_s is not None:
             out = out * (1 + self.loop_out_s[_li]) + self.loop_out_b[_li]
 
         out = self.c_proj(out)

@@ -408,10 +408,12 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
             nn.init.zeros_(self.geo_k.weight)
         # loop_inner: per-loop affine at every inter-matmul seam of this layer
         # (after to_qkv, and after o_norm before c_proj). zero-init -> baseline.
-        self.loop_inner = loop_inner
-        if loop_inner:
+        self.loop_inner = "both" if loop_inner is True else loop_inner
+        self.loop_qkv_s = self.loop_out_s = None
+        if self.loop_inner in ("both", "qkv"):
             self.loop_qkv_s = nn.Parameter(torch.zeros(n_loops_max, 3 * self.dim))
             self.loop_qkv_b = nn.Parameter(torch.zeros(n_loops_max, 3 * self.dim))
+        if self.loop_inner in ("both", "out"):
             self.loop_out_s = nn.Parameter(torch.zeros(n_loops_max, self.dim))
             self.loop_out_b = nn.Parameter(torch.zeros(n_loops_max, self.dim))
         self.key_center = key_center  # >0 enables DC-decorrelation of keys
@@ -491,8 +493,8 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
 
     def forward(self, x: torch.Tensor, info={}, *args):
         qkv_pre = self.to_qkv(x)
-        if self.loop_inner:
-            _li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
+        _li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
+        if self.loop_qkv_s is not None:
             qkv_pre = qkv_pre * (1 + self.loop_qkv_s[_li]) + self.loop_qkv_b[_li]
         if self.qkv_route > 0:
             li = min(info.get("loop_idx", 0), self.n_loops_max - 1)
@@ -655,7 +657,7 @@ class LoopFastWeightGluMLPMultihead(FastWeightGluMLPMultihead):
         output = rearrange(
             output, "(b h) l d -> b l (h d)", h=self.num_heads, b=x.shape[0]
         )
-        if self.loop_inner:
+        if self.loop_out_s is not None:
             output = output * (1 + self.loop_out_s[_li]) + self.loop_out_b[_li]
 
         output = self.c_proj(output)
