@@ -66,7 +66,8 @@
 - [RUNNING node1 gpu1 2026-07-22 18:20] r24_gf_inner_attn_lr64_s95 — `bash chain_run.sh 1 r24_gf_inner_attn_lr64_s95 config/loop_l2x4_gf_inner_attn_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + attn 이음새만)
 - [RUNNING node1 gpu2 2026-07-22 18:20] r24_gf_inner_mlp_lr64_s95 — `bash chain_run.sh 2 r24_gf_inner_mlp_lr64_s95 config/loop_l2x4_gf_inner_mlp_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + MLP 은닉만)
 - [RUNNING node1 gpu3 2026-07-22 18:20] r24_gf_inner_qkv_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s95 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + qkv측만, attn+TTT)
-- [RUNNING node2 gpu0 2026-07-22 18:24] r24_gf_inner_out_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_out_lr64_s95 config/loop_l2x4_gf_inner_out_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + 출력측(c_proj직전)만, attn+TTT)
+- [DONE PSNR=22.763 Δ+0.559] r24_gf_inner_out_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_out_lr64_s95 config/loop_l2x4_gf_inner_out_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + 출력측(c_proj직전)만, attn+TTT)
+  (node2: t=31.6. 출력측 inner만 = +0.559 ≈ gf 2다이얼 +0.569. W4b 사이트 분해표는 node1이 조립.)
 - 판정 프레임: 전부 vs gf@64 +0.569. full(진행중) vs 단일사이트 합 → 가산성; qkv vs out → 생성부/출력부; TTT vs attn/MLP → LM(W5)의 "TTT-이음새 무효" 재현 여부.
 
 
@@ -82,7 +83,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
 ### W7. ★최우선★ 3다이얼+inner full — large LM (d768 3L×4, 3B tokens, ~1일/GPU)
-- [PENDING] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+- [RUNNING node2 gpu0 2026-07-22 19:02] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+  (node2 착수: GPU0 해제로 최우선 W7 claim. 429 대비 w7_retry.sh 래퍼(백오프)로 실행. 착수 후 W3 스트림 건강 감시.)
   (구현 완료: layer_lact_swiglu qkv직후/o_proj직전 + LoopInnerMLP 은닉 affine, 스모크 통과.
   앵커: naive_3b 21.322 / ours(3다이얼)_3b_lr16 20.854 / orig_3l 25.085. **node1 권장** — node2는
   3B fineweb 스트림이 이미 1개 돌고 있어 HF 429 재발 위험. 429 시 지연 재시도 관례대로.)
