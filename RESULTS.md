@@ -761,3 +761,44 @@ zero-init affine을 넣는 사용자 아이디어. 16M/WikiText103, 12k steps, s
   다르나, 스택이 항상 최상이고 두 축이 부분 상보라는 구조는 양 태스크에서 동일.
 - W4b(node1): NVS 사이트 귀속(TTT vs attn vs MLP vs qkv vs out) 진행 중 — LM의 "TTT-이음새 무효"가
   NVS에서도 재현되는지 확인 예정.
+
+### 방법 오버헤드 정산 (params / FLOPs / wall-clock, 2026-07-22)
+
+**① 파라미터** (실런 체크포인트 state_dict에서 정확 집계; 대형 LM은 d768 인스턴스화):
+
+| 모델 | total | 다이얼(추가분) | 비율 |
+|---|---|---|---|
+| NVS d256 gf(2다이얼) | 3.89M | 20,480 | **0.53%** |
+| NVS d256 gf+inner full | 3.94M | 69,632 | **1.77%** |
+| NVS d512 gf | 13.55M | 40,960 | 0.30% |
+| LM 16M 3다이얼 | 28.9M | 24,576 | 0.085% |
+| LM 16M 3다이얼+inner | 29.0M | 73,728 | 0.255% |
+| LM-large d768 3L×4 3다이얼 | 71.8M | 55,296 | 0.077% |
+| LM-large d768 3L×4 3다이얼+inner | 72.0M | 178,176 | **0.248%** |
+
+스케일이 클수록 비율 하락(다이얼은 O(n_loops×d), 본체는 O(d²)) — d256 gf+inner 1.8%가 최악,
+대형 LM은 0.25%.
+
+**② FLOPs** (해석적): 다이얼/inner는 전부 elementwise(x·(1+s)+b ≈ 채널당 2 FLOP, 파라미터
+원소당 ~1 FLOP/token). 본체 matmul ≈ 2·P_matmul·n_loops FLOPs/token 대비:
+- NVS d256 gf ≈ 0.07% / gf+inner ≈ **0.24%** / LM-large 3다이얼+inner ≈ **0.04%**.
+- **FLOPs 관점 오버헤드는 전 구성에서 ≤0.25%로 무시 가능.** (naive loop 대비 iso-compute 성립.)
+
+**③ wall-clock (it/s, 실측 로그 steady-state 평균 n=20~40)**:
+
+| 셋업 (동일-조건 쌍만 비교) | naive | +다이얼 | +다이얼+inner | inner단독 |
+|---|---|---|---|---|
+| NVS d512 30k (node2 6-병렬, W1 동시실행) | 3.495 | 3.200 (**−8.4%**) | — | — |
+| NVS d256 30k (node1 4-병렬) | 4.519 | 4.294 (**−5.0%**) | ~3.9† (−13%†) | — |
+| NVS d256 단일사이트 inner (node1 4-병렬, W4b) | — | — | 4.10~4.18 (−8%) | — |
+| LM 16M 12k (1 GPU) | 9.16 | 8.48 (**−7.4%**) | 7.76 (**−15.3%**) | 8.51 (−7.1%) |
+| LM-large 3B tok/s (1 GPU) | 167,979 | 151,664 (**−9.7%**) | (W7 진행 시 측정) | — |
+
+†r24_gf_inner full은 node2(6-병렬)에서 3.814 — cross-node라 −13%는 근사치.
+
+- **정직한 요약**: FLOPs·파라미터는 ~0이지만 **wall-clock은 다이얼 −5~10%, inner 추가 시 −13~15%**.
+  원인은 연산량이 아니라 (a) loop×site마다 eager elementwise 커널 런치(다이얼 적용 지점이
+  block당 n_sub×n_loops회), (b) LM-large inner는 SwiGLU 언퓨즈(중간 h를 메모리 왕복).
+- 완화 여지: 다이얼 적용을 인접 LN/matmul에 퓨즈(torch.compile 영역 포함 또는 (1+s)를 weight에
+  접기 — inference에선 s,b를 qkv/o_proj/LN에 **완전 흡수 가능**(per-loop weight 4벌 사전계산,
+  looping이라 loop당 1회 스왑) → **추론 오버헤드 0 가능**). 훈련 오버헤드만 실비용.
