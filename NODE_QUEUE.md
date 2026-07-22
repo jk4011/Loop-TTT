@@ -162,9 +162,9 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 ### W11. ★L1×8 극한 케이스★ — 고유 layer 1개, depth 다양성 전부 다이얼 몫 (사용자 가설:
 "layer=1이면 우리 장점이 더 두드러진다". iso-compute 유효깊이 8 유지. 전부 s95 1-seed 사다리 먼저)
 - [RUNNING node1 gpu0 2026-07-23 00:5x] r26_loop_l1x8_s95 — `bash chain_run.sh 0 r26_loop_l1x8_s95 config/loop_l1x8_d256_p16.yaml 95` (naive L1×8 앵커. 비교: naive L2×4 22.204, L8 21.955)
-- [PENDING] r26_l1x8_gf_s95 — `bash chain_run.sh <g> r26_l1x8_gf_s95 config/loop_l1x8_gates_film_d256_p16.yaml 95 --loop_param_lr_mult 64` (2다이얼; 다이얼 슬롯 8개)
-- [PENDING] r26_l1x8_gfqkv_s95 — `bash chain_run.sh <g> r26_l1x8_gfqkv_s95 config/loop_l1x8_gf_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (미니멀 처방: 다이얼+qkv측 inner)
-- [PENDING] lm_l1x8_naive_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8.yaml lm_l1x8_naive_s95 outputs_lm_l1x8_naive.log` (LM 앵커. 비교: L2×4 naive 74.45)
+- [RUNNING node2 gpu1 2026-07-23 01:02] r26_l1x8_gf_s95 — `bash chain_run.sh 1 r26_l1x8_gf_s95 config/loop_l1x8_gates_film_d256_p16.yaml 95 --loop_param_lr_mult 64` (2다이얼; 다이얼 슬롯 8개)
+- [RUNNING node2 gpu2 2026-07-23 01:02] r26_l1x8_gfqkv_s95 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s95 config/loop_l1x8_gf_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (미니멀 처방: 다이얼+qkv측 inner)
+- [RUNNING node2 gpu5 2026-07-23 01:02] lm_l1x8_naive_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8.yaml lm_l1x8_naive_s95 outputs_lm_l1x8_naive.log` (LM 앵커. 비교: L2×4 naive 74.45)
 - [PENDING] lm_l1x8_affine_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8_affine.yaml lm_l1x8_affine_s95 outputs_lm_l1x8_affine.log` (3다이얼)
 - [PENDING] lm_l1x8_innerqkv_s95 — `./run_lm_w5.sh <g> config/lm_loop_l1x8_innerqkv.yaml lm_l1x8_innerqkv_s95 outputs_lm_l1x8_innerqkv.log` (3다이얼+qkv측)
 - 판정 프레임: 각 태스크에서 (다이얼 이득 | L1×8) vs (다이얼 이득 | L2×4) — L1×8에서 이득이 더 크면
