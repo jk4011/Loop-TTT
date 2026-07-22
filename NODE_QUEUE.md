@@ -116,10 +116,21 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   (**t=19.6. adaln optzone 3-seed 확정: +0.620/+0.598/+0.383 → 평균 +0.534, 3/3 유의. RESULTS.md 기록됨.**)
 
 ### W8. 오버헤드 벤치 + NVS 최고구성 seed 승격 (node2 유휴 GPU용; W7 다음 순위)
-- [RUNNING node2 gpu1 2026-07-22 21:22] bench_overhead — `bash bench_overhead.sh <g>` (lact/lact_nvs에서. naive/gf/gf+inner ×
+- [DONE 아래 6줄] bench_overhead — `bash bench_overhead.sh <g>` (lact/lact_nvs에서. naive/gf/gf+inner ×
   eager/compile 6종, 600스텝씩 ~1.5h. /tmp/re10k 필요. 결과 6줄("name: it/s")을 이 항목 DONE 노트에
   그대로 기록 — "compile이 다이얼 오버헤드를 얼마나 회수하는가" 측정이 목적. 체크포인트는 스크립트가
   자동 삭제, eval 없음.)
+  ```
+  naive_eager: 7.403
+  gf_eager: 6.582
+  gfinner_eager: 5.122
+  naive_compile: 15.330
+  gf_compile: 14.153
+  gfinner_compile: 13.957
+  ```
+  (**해석: eager에선 gf+inner가 naive 대비 −31%(7.40→5.12), gf만은 −11%. compile 하에선 gf+inner
+  −9.0%(15.33→13.96), gf만 −7.7% — compile이 다이얼/inner 오버헤드의 대부분을 회수(−31%→−9%),
+  절대 처리량도 ~2배. 실사용은 compile 필수, 그때 다이얼 비용은 한 자릿수 %.**)
 - [RUNNING node2 gpu3 2026-07-22 21:22] r24_gf_inner_lr64_s96 — `bash chain_run.sh 3 r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
   (NVS 최고 스택(s95 +0.660) seed 승격. paired 기준 r1_loop_l2x4_s96.)
 - [RUNNING node2 gpu4 2026-07-22 21:22] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
