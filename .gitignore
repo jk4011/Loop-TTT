@@ -6,3 +6,4 @@ lact/.cache_inductor_nvs/
 lact/lact_nvs/outputs/*/train.log
 *.pth
 outputs_lm_*.log
+*.pt
