@@ -15,7 +15,7 @@
 (2) **노드 준비(최초 1회 + 노드 리셋 후마다)**:
 `bash /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/claude_portable/setup_node.sh` 실행 여부 확인 후,
 NVS 태스크가 큐에 있으면 `/tmp/re10k/{train,test}_index.json` 존재를 확인하고 없으면
-NODE_QUEUE.md 준비 절의 reshard 커맨드를 실행해라(~3분). `nvidia-smi`로 GPU 수(6개 기대)를
+NODE_QUEUE.md 준비 절의 reshard 커맨드를 실행해라(~3분). `nvidia-smi`로 **가용 GPU 수를 세어**(고정 아님 — 재할당 시 달라질 수 있음) 그 수만큼만 claim하고, 확인 결과를
 확인하고 시작 보고를 NODE_QUEUE.md 하단 "완료 로그"에 append 해라.
 
 (3) **실행 관례**: NVS는 `lact/lact_nvs`에서 큐에 적힌 커맨드 그대로
@@ -34,7 +34,7 @@ RESULTS/NODE_QUEUE는 양쪽 내용을 모두 보존(append 성격). `*.pt`, `*.
 (5) **장애 복구**: 크래시/OOM이면 train.log 꼬리를 진단해 원인을 FAILED 줄에 요약해라.
 재시도는 (a) 일시적 오류(NCCL/데이터로더)는 같은 커맨드 재실행 — train.py/chain은
 `outputs/<exp>`에서 auto-resume 된다, (b) OOM 등 설정 변경이 필요한 경우는 태스크에 허용이
-명시된 때만 바꾸고 변경 내용을 DONE/FAILED 줄에 기록해라. 노드 리셋 후 재시작되면:
+명시된 때만 바꾸고 변경 내용을 DONE/FAILED 줄에 기록해라. 다른 노드의 [RUNNING] 항목이라도 train.log가 30분 이상 미갱신이면 고아로 간주해 같은 실험명·같은 커맨드로 이어받아라(auto-resume; eval.json 있으면 DONE 처리만). 노드 리셋 후 재시작되면:
 setup → reshard 확인 → NODE_QUEUE.md에서 `[RUNNING node2 ...]`로 남아 있는 태스크들의
 `outputs/<exp>` 최신 체크포인트를 확인하고 **같은 실험명으로 같은 커맨드를 재실행**해 이어받아라.
 

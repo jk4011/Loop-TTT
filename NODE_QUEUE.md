@@ -21,6 +21,13 @@
   node2는 GPU 0-5 (6개). 실험명은 아래 큐에 적힌 그대로 사용(노드 간 충돌 방지의 핵심).
 - **판정 기준**: NVS는 `python compare_evals.py outputs/r1_loop_l2x4_s<seed>/eval.json outputs/<exp>/eval.json`
   (동일 seed paired). LLM은 train.log 마지막 VAL ppl.
+- **노드 사망/가변 자원 대응** (node2는 Slurm이라 언제든 꺼질 수 있고 GPU 수도 달라질 수 있음):
+  - 커맨드의 gpu 인덱스는 **제안**일 뿐 — 실행 노드가 시작 시 `nvidia-smi`로 가용 GPU 수를 세고
+    그 수만큼만 claim, 인덱스는 자유 배정 (RUNNING 표기에 실제 gpu 기록).
+  - **stale 회수**: `[RUNNING ...]`인데 `outputs/<exp>/train.log`가 **30분 이상 미갱신**이면 고아로
+    간주 — 어느 노드든 같은 실험명·같은 커맨드로 재실행해 이어받고(auto-resume), RUNNING 줄의
+    노드/시각을 갱신한다. eval.json이 이미 있으면 실행 없이 DONE 처리만 한다.
+  - 노드가 살아나면 자신의 RUNNING 항목부터 위 규칙으로 자가 복구.
 
 ## 큐
 
