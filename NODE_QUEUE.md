@@ -142,7 +142,7 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node1 gpu3] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
 
 ### W10. 절대 처리량 — 알맞은 baseline 포함 벤치 (사용자 요청: 비루프 모델 대비)
-- [PENDING] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
+- [RUNNING node2 gpu1 2026-07-22 22:52] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
   L8(고유깊이 iso-compute)/naive L2x4/gf/gf+inner × eager/compile 8줄 — 결과를 이 항목 DONE 노트에 그대로 기록.)
 - (d256 세트는 node1 gpu0에서 실행: [RUNNING node1 gpu0 예정 — LM innerqkv 종료 직후])
 
