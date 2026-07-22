@@ -64,8 +64,8 @@
 
 ### W5. inner-affine LM 검증 (양 태스크 검증의 LM쪽 — 최경량 16M/WikiText, 기존 anchor 재활용:
 naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
-- [RUNNING node2 gpu5 2026-07-22 16:48] lm_affine_inner_s95 — `CUDA_VISIBLE_DEVICES=<g> /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin/python train_lm.py --config config/lm_loop_l2x4_affine_inner.yaml --expname lm_affine_inner_s95 --data_dir /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/dataset/wikitext103_gpt2 --steps 12000 --bs 16 --seed 95 --val_every 3000 --loop_param_lr_mult 64 > outputs_lm_affine_inner.log 2>&1` (3다이얼+inner full; vs 59.14)
-  (node2: TRITON/INDUCTOR 캐시 export 위해 run_lm_w5.sh 래퍼로 실행. 나머지 2개는 gpu0/1 비면 투입.)
+- [DONE ppl=55.20] lm_affine_inner_s95 — `CUDA_VISIBLE_DEVICES=<g> /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin/python train_lm.py --config config/lm_loop_l2x4_affine_inner.yaml --expname lm_affine_inner_s95 --data_dir /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/dataset/wikitext103_gpt2 --steps 12000 --bs 16 --seed 95 --val_every 3000 --loop_param_lr_mult 64 > outputs_lm_affine_inner.log 2>&1` (3다이얼+inner full; vs 59.14)
+  (run_lm_w5.sh 래퍼로 실행. **ppl 55.20 vs 3다이얼 59.14 = −3.94, naive 74.45 대비 −19.25.** RESULTS는 W5 3종 완료 후 표로.)
 - [RUNNING node2 gpu0 2026-07-22 17:14] lm_affine_innerttt_s95 — 같은 형식, config `lm_loop_l2x4_affine_innerttt.yaml`, expname `lm_affine_innerttt_s95`, 로그 `outputs_lm_affine_innerttt.log` (TTT inner만) — run_lm_w5.sh 래퍼 사용
 - [RUNNING node2 gpu1 2026-07-22 17:18] lm_inner_only_s95 — 같은 형식, config `lm_loop_l2x4_inner_only.yaml`, expname `lm_inner_only_s95`, 로그 `outputs_lm_inner_only.log` (inner만; vs naive 74.45) — run_lm_w5.sh 래퍼 사용
 - 주의: 실행 dir은 lact/lact_nvs (train_lm.py 위치). launch_exp의 TRITON/INDUCTOR 캐시 export 복사할 것.
