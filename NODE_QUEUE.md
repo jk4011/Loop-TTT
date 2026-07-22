@@ -81,6 +81,12 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 주의: 실행 dir은 lact/lact_nvs (train_lm.py 위치). launch_exp의 TRITON/INDUCTOR 캐시 export 복사할 것.
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
+### W7. ★최우선★ 3다이얼+inner full — large LM (d768 3L×4, 3B tokens, ~1일/GPU)
+- [PENDING] lm loop_oursinner_3b_lr16 — `./run_loop.sh <g> loop_oursinner_3b_lr16 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_inner full --loop_param_lr_mult 16 --bs 8 --token_budget 3000000000`
+  (구현 완료: layer_lact_swiglu qkv직후/o_proj직전 + LoopInnerMLP 은닉 affine, 스모크 통과.
+  앵커: naive_3b 21.322 / ours(3다이얼)_3b_lr16 20.854 / orig_3l 25.085. **node1 권장** — node2는
+  3B fineweb 스트림이 이미 1개 돌고 있어 HF 429 재발 위험. 429 시 지연 재시도 관례대로.)
+
 ### W6. seed 승격 (단일-seed 발견의 3-seed 확정; 여유 GPU부터 위에서 순서대로)
 - [DONE ppl=55.42] lm_affine_inner_s96 — W5 첫 항목과 같은 형식(run_lm_w5.sh 래퍼 가능), `--seed 96`, expname `lm_affine_inner_s96` (LM 최고치 55.20의 seed 재현 — 양태스크 주장 보강, ~1.5h)
   (**ppl 55.42 (s95 55.20) — LM 최고치 2-seed 평균 55.31. affine_inner 스택 최상 확정. RESULTS.md 표 seed 반영됨.**)

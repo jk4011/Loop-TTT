@@ -204,6 +204,8 @@ class LaCTSWIGLULayer(nn.Module):
         fw_init_gain: float = 0.5,  # init the fast weights
         use_fused_kernel: bool = False,
         fp32_states: bool = False,
+        loop_inner: str = "none",
+        n_loops_max: int = 1,
     ):
         super().__init__()
 
@@ -222,6 +224,15 @@ class LaCTSWIGLULayer(nn.Module):
             self.k_norm = RMSNorm(self.hidden_size)
 
         self.o_proj = nn.Linear(self.hidden_size, self.hidden_size, bias=False)
+
+        # per-loop inner affine (loop-TTT): zero-init scale/shift at the matmul
+        # seams so the shared qkv/o_proj act as different operators per loop.
+        self.loop_inner = loop_inner
+        if loop_inner == "full":
+            self.loop_qkv_s = nn.Parameter(torch.zeros(n_loops_max, hidden_size * 3))
+            self.loop_qkv_b = nn.Parameter(torch.zeros(n_loops_max, hidden_size * 3))
+            self.loop_out_s = nn.Parameter(torch.zeros(n_loops_max, hidden_size))
+            self.loop_out_b = nn.Parameter(torch.zeros(n_loops_max, hidden_size))
 
         self.rope_theta = rope_theta
         self.rotary = RotaryEmbedding(dim=self.head_dim, base=self.rope_theta)
@@ -571,7 +582,11 @@ class LaCTSWIGLULayer(nn.Module):
 
         batch_size, q_len, _ = hidden_states.size()
 
-        q, k, v = self.qkv(hidden_states).chunk(3, dim=-1)
+        qkv = self.qkv(hidden_states)
+        if self.loop_inner == "full":
+            _li = min(kwargs.get("loop_idx", 0), self.loop_qkv_s.shape[0] - 1)
+            qkv = qkv * (1 + self.loop_qkv_s[_li]) + self.loop_qkv_b[_li]
+        q, k, v = qkv.chunk(3, dim=-1)
         #### compute window attention first, then do ttt. ####
 
         if self.attn_qk_norm:
@@ -1033,6 +1048,9 @@ class LaCTSWIGLULayer(nn.Module):
         )
 
         o = o + ttt_x_normed
+        if self.loop_inner == "full":
+            _li = min(kwargs.get("loop_idx", 0), self.loop_out_s.shape[0] - 1)
+            o = o * (1 + self.loop_out_s[_li]) + self.loop_out_b[_li]
         o = self.o_proj(o)
 
         if not output_attentions:

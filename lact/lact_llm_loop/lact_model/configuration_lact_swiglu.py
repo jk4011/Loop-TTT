@@ -27,6 +27,7 @@ class LaCTSWIGLUConfig(PretrainedConfig):
         n_loops: int = 1,
         loop_order: str = "stack",
         loop_dials: bool = False,
+        loop_inner: str = "none",
         num_attn_heads: int = 32,
         num_lact_heads: int = 4,
         inter_multi: int = 1,
@@ -142,6 +143,7 @@ class LaCTSWIGLUConfig(PretrainedConfig):
         self.n_loops = n_loops
         self.loop_order = loop_order
         self.loop_dials = loop_dials
+        self.loop_inner = loop_inner
         self.num_attn_heads = num_attn_heads
         self.num_lact_heads = num_lact_heads
         self.inter_multi = inter_multi

@@ -69,6 +69,8 @@ def parse_args():
                    help="stack: repeat whole stack (123 123..); layer: repeat each layer (1111 2222..)")
     p.add_argument("--loop_dials", type=str2bool, default=False,
                    help="Per-loop FiLM+gate dials (zero-init)")
+    p.add_argument("--loop_inner", type=str, default="none", choices=["none", "full"],
+                   help="Per-loop inner affine at matmul seams (qkv/out/MLP-hidden, zero-init)")
     p.add_argument("--loop_param_lr_mult", type=float, default=0.0,
                    help="optzone: dial params get wd=0 and lr*this")
     p.add_argument("--num_attn_heads", type=int, default=12)
@@ -153,6 +155,7 @@ def build_config(args, vocab_size, tokenizer):
         n_loops=args.n_loops,
         loop_order=args.loop_order,
         loop_dials=args.loop_dials,
+        loop_inner=args.loop_inner,
         # fp32_states: left at config/class default on purpose
     ))
     # keep special token ids consistent with the tokenizer actually used
@@ -176,7 +179,9 @@ def build_optimizer(model, args):
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
-        if mult > 0 and ("loop_film" in name or "loop_gate" in name):
+        if mult > 0 and any(k in name for k in (
+                "loop_film", "loop_gate", "loop_qkv_", "loop_out_",
+                "loop_hscale", "loop_hshift")):
             loopp.append(param)
         elif param.dim() >= 2:
             decay.append(param)

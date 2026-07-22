@@ -33,6 +33,23 @@ if TYPE_CHECKING:
     from transformers.processing_utils import Unpack
 
 
+class LoopInnerMLP(TransformerMLP):
+    """GatedMLP + per-loop zero-init affine on the SwiGLU hidden (between the
+    activation and down_proj) — the shared MLP acts as a different operator per
+    loop. Unfused on purpose: the affine sits inside the fused seam."""
+
+    def __init__(self, *args, n_loops_max: int = 1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loop_hscale = nn.Parameter(torch.zeros(n_loops_max, self.intermediate_size))
+        self.loop_hshift = nn.Parameter(torch.zeros(n_loops_max, self.intermediate_size))
+
+    def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+        li = min(kwargs.get("loop_idx", 0), self.loop_hscale.shape[0] - 1)
+        h = nn.functional.silu(self.gate_proj(x)) * self.up_proj(x)
+        h = h * (1 + self.loop_hscale[li]) + self.loop_hshift[li]
+        return self.down_proj(h)
+
+
 class LaCTBlock(nn.Module):
 
     def __init__(self, config: LaCTSWIGLUConfig, layer_idx: int):
@@ -101,17 +118,25 @@ class LaCTBlock(nn.Module):
             fw_init_gain=config.fw_init_gain,
             use_fused_kernel=config.use_fused_kernel,
             fp32_states=config.fp32_states,
+            loop_inner=getattr(config, "loop_inner", "none"),
+            n_loops_max=getattr(config, "n_loops", 1),
         )
 
         self.mlp_norm = (RMSNorm if config.fuse_norm else nn.RMSNorm)(
             config.hidden_size, eps=config.norm_eps
         )
-        self.mlp = TransformerMLP(
+        _mlp_cls = TransformerMLP
+        _mlp_kw = {}
+        if getattr(config, "loop_inner", "none") == "full":
+            _mlp_cls = LoopInnerMLP
+            _mlp_kw = {"n_loops_max": getattr(config, "n_loops", 1)}
+        self.mlp = _mlp_cls(
             hidden_size=config.hidden_size,
             hidden_ratio=config.hidden_ratio,
             intermediate_size=config.intermediate_size,
             hidden_act=config.hidden_act,
             fuse_swiglu=config.fuse_swiglu,
+            **_mlp_kw,
         )
         # per-loop dials (loop-TTT method): FiLM on each sub-module input, gate on
         # each sub-module output. zero-init -> exact baseline at start.
@@ -146,6 +171,7 @@ class LaCTBlock(nn.Module):
             past_key_values=past_key_values,
             use_cache=use_cache,
             output_attentions=output_attentions,
+            loop_idx=loop_idx,
             **kwargs,
         )
         if self.loop_gate is not None:
@@ -159,7 +185,7 @@ class LaCTBlock(nn.Module):
         if self.loop_film is not None:
             f = self.loop_film[loop_idx, 1]
             hidden_states = hidden_states * (1 + f[0]) + f[1]
-        hidden_states = self.mlp(hidden_states, **kwargs)
+        hidden_states = self.mlp(hidden_states, loop_idx=loop_idx, **kwargs)
         if self.loop_gate is not None:
             hidden_states = hidden_states * (1 + self.loop_gate[loop_idx, 1])
         hidden_states = residual + hidden_states
