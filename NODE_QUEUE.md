@@ -66,7 +66,7 @@
 - [RUNNING node1 gpu1 2026-07-22 18:20] r24_gf_inner_attn_lr64_s95 — `bash chain_run.sh 1 r24_gf_inner_attn_lr64_s95 config/loop_l2x4_gf_inner_attn_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + attn 이음새만)
 - [RUNNING node1 gpu2 2026-07-22 18:20] r24_gf_inner_mlp_lr64_s95 — `bash chain_run.sh 2 r24_gf_inner_mlp_lr64_s95 config/loop_l2x4_gf_inner_mlp_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + MLP 은닉만)
 - [RUNNING node1 gpu3 2026-07-22 18:20] r24_gf_inner_qkv_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s95 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + qkv측만, attn+TTT)
-- [PENDING] r24_gf_inner_out_lr64_s95 — `bash chain_run.sh <g> r24_gf_inner_out_lr64_s95 config/loop_l2x4_gf_inner_out_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + 출력측(c_proj직전)만, attn+TTT)
+- [RUNNING node2 gpu0 2026-07-22 18:24] r24_gf_inner_out_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_out_lr64_s95 config/loop_l2x4_gf_inner_out_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + 출력측(c_proj직전)만, attn+TTT)
 - 판정 프레임: 전부 vs gf@64 +0.569. full(진행중) vs 단일사이트 합 → 가산성; qkv vs out → 생성부/출력부; TTT vs attn/MLP → LM(W5)의 "TTT-이음새 무효" 재현 여부.
 
 
@@ -82,8 +82,8 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
 
 ### W6. seed 승격 (단일-seed 발견의 3-seed 확정; 여유 GPU부터 위에서 순서대로)
-- [PENDING] lm_affine_inner_s96 — W5 첫 항목과 같은 형식(run_lm_w5.sh 래퍼 가능), `--seed 96`, expname `lm_affine_inner_s96` (LM 최고치 55.20의 seed 재현 — 양태스크 주장 보강, ~1.5h)
-- [PENDING] lm_inner_only_s96 — W5 셋째 항목과 같은 형식, `--seed 96`, expname `lm_inner_only_s96` ("inner 단독 > 3다이얼" 재현, ~1.5h)
+- [RUNNING node2 gpu1 2026-07-22 18:24] lm_affine_inner_s96 — W5 첫 항목과 같은 형식(run_lm_w5.sh 래퍼 가능), `--seed 96`, expname `lm_affine_inner_s96` (LM 최고치 55.20의 seed 재현 — 양태스크 주장 보강, ~1.5h)
+- [RUNNING node2 gpu5 2026-07-22 18:24] lm_inner_only_s96 — W5 셋째 항목과 같은 형식, `--seed 96`, expname `lm_inner_only_s96` ("inner 단독 > 3다이얼" 재현, ~1.5h)
 - [PENDING] r23_adaln_oz_s96 — `bash chain_run.sh <g> r23_adaln_oz_s96 config/loop_l2x4_adaln_d256_p16.yaml 96 --loop_param_lr_mult 64` (optzone-구제 +0.620의 seed 확인; paired 기준 r1_loop_l2x4_s96)
 - [PENDING] r22_d512_gf_lr128_s96 — `bash chain_run.sh <g> r22_d512_gf_lr128_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 128` (d512 lr 정점 128 vs 64 판별)
 - [PENDING] r22_d512_gf_lr128_s97 — 같은 형식, seed 97, expname `r22_d512_gf_lr128_s97`
