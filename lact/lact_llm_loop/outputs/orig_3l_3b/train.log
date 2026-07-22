@@ -1067,3 +1067,7 @@ VAL step=85000 loss=3.2246 ppl=25.14 (eval took 1.0s)
 step=85100 loss=3.2286 tokens/sec=511,923 lr=3.682e-06 tokens_seen=2,788,556,800
 step=85200 loss=3.2069 tokens/sec=516,920 lr=3.569e-06 tokens_seen=2,791,833,600
 step=85300 loss=3.2173 tokens/sec=510,581 lr=3.458e-06 tokens_seen=2,795,110,400
+step=85400 loss=3.2383 tokens/sec=514,869 lr=3.349e-06 tokens_seen=2,798,387,200
+step=85500 loss=3.1863 tokens/sec=521,508 lr=3.241e-06 tokens_seen=2,801,664,000
+step=85600 loss=3.2327 tokens/sec=498,603 lr=3.135e-06 tokens_seen=2,804,940,800
+step=85700 loss=3.1925 tokens/sec=518,608 lr=3.031e-06 tokens_seen=2,808,217,600
