@@ -62,10 +62,10 @@
   (t=27.7. NVS inner-affine 단독 +0.320 — 양성이나 gf 2다이얼 +0.569보다 약함(LM에선 inner_only가 3다이얼 격파 → 태스크 의존). gf_inner full 결과 나오면 RESULTS 함께 기록.)
 
 #### W4b. NVS inner 사이트 분해 (LM W5 결과가 attn/MLP-이음새 우세를 시사 → NVS에서 사이트 귀속)
-- [RUNNING node1 gpu0 2026-07-22 21:26 (리셋 후 20k에서 재개)] r24_gf_inner_ttt_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_ttt_lr64_s95 config/loop_l2x4_gf_inner_ttt_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + TTT 이음새만)
-- [RUNNING node1 gpu1 2026-07-22 21:26 (재개)] r24_gf_inner_attn_lr64_s95 — `bash chain_run.sh 1 r24_gf_inner_attn_lr64_s95 config/loop_l2x4_gf_inner_attn_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + attn 이음새만)
-- [RUNNING node1 gpu2 2026-07-22 21:26 (재개)] r24_gf_inner_mlp_lr64_s95 — `bash chain_run.sh 2 r24_gf_inner_mlp_lr64_s95 config/loop_l2x4_gf_inner_mlp_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + MLP 은닉만)
-- [RUNNING node1 gpu3 2026-07-22 21:26 (재개)] r24_gf_inner_qkv_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s95 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + qkv측만, attn+TTT)
+- [DONE PSNR=22.831 Δ+0.627] r24_gf_inner_ttt_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_ttt_lr64_s95 config/loop_l2x4_gf_inner_ttt_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + TTT 이음새만)
+- [DONE PSNR=22.844 Δ+0.640] r24_gf_inner_attn_lr64_s95 — `bash chain_run.sh 1 r24_gf_inner_attn_lr64_s95 config/loop_l2x4_gf_inner_attn_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + attn 이음새만)
+- [DONE PSNR=22.839 Δ+0.635] r24_gf_inner_mlp_lr64_s95 — `bash chain_run.sh 2 r24_gf_inner_mlp_lr64_s95 config/loop_l2x4_gf_inner_mlp_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + MLP 은닉만)
+- [DONE PSNR=22.850 Δ+0.646] r24_gf_inner_qkv_lr64_s95 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s95 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + qkv측만, attn+TTT)
 - [DONE PSNR=22.763 Δ+0.559] r24_gf_inner_out_lr64_s95 — `bash chain_run.sh 0 r24_gf_inner_out_lr64_s95 config/loop_l2x4_gf_inner_out_d256_p16.yaml 95 --loop_param_lr_mult 64` (gf + 출력측(c_proj직전)만, attn+TTT)
   (node2: t=31.6. 출력측 inner만 = +0.559 ≈ gf 2다이얼 +0.569. W4b 사이트 분해표는 node1이 조립.)
 - 판정 프레임: 전부 vs gf@64 +0.569. full(진행중) vs 단일사이트 합 → 가산성; qkv vs out → 생성부/출력부; TTT vs attn/MLP → LM(W5)의 "TTT-이음새 무효" 재현 여부.
@@ -134,6 +134,12 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node2 gpu3 2026-07-22 21:22] r24_gf_inner_lr64_s96 — `bash chain_run.sh 3 r24_gf_inner_lr64_s96 config/loop_l2x4_gf_inner_d256_p16.yaml 96 --loop_param_lr_mult 64`
   (NVS 최고 스택(s95 +0.660) seed 승격. paired 기준 r1_loop_l2x4_s96.)
 - [RUNNING node2 gpu4 2026-07-22 21:22] r24_gf_inner_lr64_s97 — 같은 형식, seed 97, expname `r24_gf_inner_lr64_s97` (paired 기준 r1_loop_l2x4_s97)
+
+### W9. 후속 (node1 실행 중, 2026-07-22 22:4x)
+- [RUNNING node1 gpu0] lm_affine_innerqkv_s95 — `./run_lm_w5.sh 0 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s95 outputs_lm_affine_innerqkv.log` (LM에서 qkv측-만 사이트 검증 — NVS 최강 단일사이트의 교차태스크 확인. vs 3다이얼 59.14 / full-inner 55.20)
+- [RUNNING node1 gpu1] r25_d512_gfinner_lr128_s95 — `bash chain_run.sh 1 r25_d512_gfinner_lr128_s95 config/loop_l2x4_gf_inner_d512_p16.yaml 95 --loop_param_lr_mult 128` (풀스택 d512 스케일 확인; 비교: d512 gf lr128 s95 +0.703)
+- [RUNNING node1 gpu2] r24_gf_inner_qkv_lr64_s96 — `bash chain_run.sh 2 r24_gf_inner_qkv_lr64_s96 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64` (미니멀 후보 gf+qkv 승격)
+- [RUNNING node1 gpu3] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.

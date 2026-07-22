@@ -1,0 +1,35 @@
+# LM: 3-dial + inner-affine qkv-side only (attn+TTT qkv seams; no out, no MLP hidden)
+vocab_size: 50257
+dim: 256
+layers: 2
+n_loops: 4
+loop_film: true
+loop_gates: true
+loop_affine: true
+seq_len: 1024
+ttt_chunk: 256
+block_config:
+  - type: model.SelfAttention
+    length_dim: vl
+    params:
+      head_dim: 64
+      use_qk_norm: true
+      causal: true
+      loop_inner: qkv
+      n_loops_max: 4
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      loop_inner: qkv
+      nl_cond: true
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
+      n_loops_max: 4
