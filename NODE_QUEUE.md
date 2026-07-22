@@ -229,3 +229,6 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   layer-다양성 복원); W2 adaln optzone +0.620(형태 아닌 처방). **자원 변화**: 현재 node2 GPU 1-4를
   외부 프로젝트(`gfm` env, loop_TTT 무관)가 점유 → node2 가용 GPU는 0,5 2개뿐. claim 가능 PENDING
   없음(W14는 node1). 신규 PENDING 감시하며 대기 중.
+- 2026-07-23 03:4x **node2 가용 GPU 0개**: 외부 `gfm` 잡이 6 GPU 전부로 확장(방금 비운 gpu0/5 포함).
+  **W15의 node2 몫(r26_l1x8_gf_s96/s97)을 claim 못 함** — GPU 해제 시 즉시 착수 예정. node1이 더
+  급하면 node1 GPU로 가져가도 무방(그 경우 이 두 줄 RUNNING 표기 갱신 요망). GPU-해제 감시로 대기.
