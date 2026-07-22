@@ -743,4 +743,18 @@ zero-init affine을 넣는 사용자 아이디어. 16M/WikiText103, 12k steps, s
 - **3다이얼과 부분 상보**: 스택(55.20)이 둘 각각(57.68/59.14)보다 우수하나 완전가산은 아님(중첩 큼).
 - **이득의 출처는 attn/MLP 이음새**: TTT 이음새에만 넣으면(innerttt 59.45) 3다이얼과 무차별 →
   looping 조건화의 지렛대는 TTT fast-weight 경로가 아니라 표준 attn/MLP 서브블록의 재표현에 있음.
-- NVS쪽 검증(W4: r24_gf_inner / r24_inner_only)은 node2에서 훈련 중 — 결과 나오면 이 절에 추가.
+
+**NVS 검증 (W4, d256, s95, paired vs naive loop 22.204):**
+
+| 구성 (d256, s95) | dPSNR | LPIPS | vs gf 2다이얼(+0.569) |
+|---|---|---|---|
+| inner_only (inner만, 다이얼 없음) | +0.320 (t=27.7) | −0.014 | −0.249 |
+| gf 2다이얼 + inner full (gf_inner) | **+0.660** (t=32.0) | −0.027 | **+0.091** |
+
+- **NVS도 스택이 최상**(+0.660 > gf 단독 +0.569, inner 단독 +0.320): inner-affine이 2다이얼 위에
+  +0.091 가산. 두 태스크 공통으로 "outer 다이얼 + inner 사이사이" 스택이 각 단독을 이김.
+- **태스크 의존 반전**: LM에선 inner 단독(57.68)이 outer 다이얼(59.14)을 **이기지만**, NVS에선
+  inner 단독(+0.320)이 outer 다이얼(+0.569)보다 **약함**. inner-affine의 상대적 위력은 태스크마다
+  다르나, 스택이 항상 최상이고 두 축이 부분 상보라는 구조는 양 태스크에서 동일.
+- W4b(node1): NVS 사이트 귀속(TTT vs attn vs MLP vs qkv vs out) 진행 중 — LM의 "TTT-이음새 무효"가
+  NVS에서도 재현되는지 확인 예정.
