@@ -989,3 +989,20 @@ NVS쪽(r26 3런) 진행 중.
 - inner full은 compile 후에도 −12% — d512에선 사이트 벡터가 커져 잔여 대역폭 비용이 남음.
   (품질은 d512 풀스택 +0.767 vs gf +0.703 — +0.064 가산에 −10.5%p 처리량. 트레이드오프 명시.)
 - 루프 iso-compute 재확인 (naive ≈ L8, 양 모드).
+
+### W13b — LM compile 회수 실측 (d768, per-block torch.compile, node1 gpu0, 2026-07-23)
+
+| 모델 (d768) | eager tok/s | compile tok/s | naive 대비 eager | naive 대비 compile |
+|---|---|---|---|---|
+| orig 12L (준거) | 203,990 | 254,271 | — | — |
+| naive 3L×4 | 205,390 | 254,948 | — | — |
+| + 3다이얼 | 182,674 | 245,582 | −11.1% | **−3.7%** |
+| + 다이얼+inner | 164,203 | 236,593 | −20.1% | **−7.2%** |
+
+- **"compile 이식 여지" 검증 완료**: LM에서도 다이얼 −11%→−3.7%, inner −20%→−7.2%로 회수 —
+  NVS(−31%→−9%)와 동일 패턴. per-block compile(HF Cache/flash-attn 외곽 유지)로 충분.
+- 루프 iso-compute는 compile에서도 성립 (254.9k ≈ 254.3k).
+- 부수: compile 자체가 전 파이프라인 +24% (205k→255k) — 단 기존 앵커(eager)와의 짝 비교 유지를
+  위해 진행 중인 훈련(W7 등)은 eager 유지, 이후 실험 세대에서 양팔 동시 전환 고려.
+- **최종 오버헤드 요약 (compile, naive loop 대비)**: NVS d256 gf −7.7%/d512 gf −1.6%, LM d768
+  3다이얼 −3.7% — 다이얼은 스케일에서 공짜 수렴. inner full은 −7~12% 잔존(품질 가산과 트레이드오프).
