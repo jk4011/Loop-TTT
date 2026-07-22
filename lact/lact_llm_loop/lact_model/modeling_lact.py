@@ -345,8 +345,14 @@ class LaCTModel(LaCTPreTrainedModel):
         all_attns = () if output_attentions else None
         next_cache = None
 
-        for loop_idx in range(getattr(self.config, "n_loops", 1)):
-          for layer in self.layers:
+        _nl = getattr(self.config, "n_loops", 1)
+        # stack: [123][123]... (전체 스택 반복) / layer: 1111 2222 3333 (층별 반복)
+        if getattr(self.config, "loop_order", "stack") == "layer":
+            _visit = [(l, i) for l in self.layers for i in range(_nl)]
+        else:
+            _visit = [(l, i) for i in range(_nl) for l in self.layers]
+        for layer, loop_idx in _visit:
+          if True:
             if output_hidden_states:
                 all_hidden_states += (hidden_states,)
             kwargs["loop_idx"] = loop_idx

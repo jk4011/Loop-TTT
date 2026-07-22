@@ -65,6 +65,8 @@ def parse_args():
     p.add_argument("--num_hidden_layers", type=int, default=12)
     p.add_argument("--n_loops", type=int, default=1,
                    help="Loop the (num_hidden_layers) unique layers this many times (eff depth = product)")
+    p.add_argument("--loop_order", type=str, default="stack", choices=["stack", "layer"],
+                   help="stack: repeat whole stack (123 123..); layer: repeat each layer (1111 2222..)")
     p.add_argument("--loop_dials", type=str2bool, default=False,
                    help="Per-loop FiLM+gate dials (zero-init)")
     p.add_argument("--loop_param_lr_mult", type=float, default=0.0,
@@ -149,6 +151,7 @@ def build_config(args, vocab_size, tokenizer):
         vocab_size=vocab_size,
         use_fused_kernel=args.use_fused_kernel,
         n_loops=args.n_loops,
+        loop_order=args.loop_order,
         loop_dials=args.loop_dials,
         # fp32_states: left at config/class default on purpose
     ))

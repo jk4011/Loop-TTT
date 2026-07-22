@@ -25,6 +25,7 @@ class LaCTSWIGLUConfig(PretrainedConfig):
         hidden_size: int = 2048,
         num_hidden_layers: int = 24,
         n_loops: int = 1,
+        loop_order: str = "stack",
         loop_dials: bool = False,
         num_attn_heads: int = 32,
         num_lact_heads: int = 4,
@@ -139,6 +140,7 @@ class LaCTSWIGLUConfig(PretrainedConfig):
         self.hidden_size = hidden_size
         self.num_hidden_layers = num_hidden_layers
         self.n_loops = n_loops
+        self.loop_order = loop_order
         self.loop_dials = loop_dials
         self.num_attn_heads = num_attn_heads
         self.num_lact_heads = num_lact_heads
