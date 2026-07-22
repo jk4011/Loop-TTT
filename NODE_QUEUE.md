@@ -25,12 +25,12 @@
 ## 큐
 
 ### W1. d512 스케일업 3-seed 완성 (6런 = GPU 0-5에 병렬)
-- [PENDING] r22_d512_naive_s96 — `bash chain_run.sh 0 r22_d512_naive_s96 config/loop_l2x4_d512_p16.yaml 96`
-- [PENDING] r22_d512_naive_s97 — `bash chain_run.sh 1 r22_d512_naive_s97 config/loop_l2x4_d512_p16.yaml 97`
-- [PENDING] r22_d512_gf_lr64_s96 — `bash chain_run.sh 2 r22_d512_gf_lr64_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 64`
-- [PENDING] r22_d512_gf_lr64_s97 — `bash chain_run.sh 3 r22_d512_gf_lr64_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 64`
-- [PENDING] r22_d512_gf_lr16_s96 — `bash chain_run.sh 4 r22_d512_gf_lr16_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 16`
-- [PENDING] r22_d512_gf_lr16_s97 — `bash chain_run.sh 5 r22_d512_gf_lr16_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 16`
+- [RUNNING node2 gpu0 2026-07-22 13:18] r22_d512_naive_s96 — `bash chain_run.sh 0 r22_d512_naive_s96 config/loop_l2x4_d512_p16.yaml 96`
+- [RUNNING node2 gpu1 2026-07-22 13:18] r22_d512_naive_s97 — `bash chain_run.sh 1 r22_d512_naive_s97 config/loop_l2x4_d512_p16.yaml 97`
+- [RUNNING node2 gpu2 2026-07-22 13:18] r22_d512_gf_lr64_s96 — `bash chain_run.sh 2 r22_d512_gf_lr64_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 64`
+- [RUNNING node2 gpu3 2026-07-22 13:18] r22_d512_gf_lr64_s97 — `bash chain_run.sh 3 r22_d512_gf_lr64_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 64`
+- [RUNNING node2 gpu4 2026-07-22 13:18] r22_d512_gf_lr16_s96 — `bash chain_run.sh 4 r22_d512_gf_lr16_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 16`
+- [RUNNING node2 gpu5 2026-07-22 13:18] r22_d512_gf_lr16_s97 — `bash chain_run.sh 5 r22_d512_gf_lr16_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 16`
 - 기록: RESULTS.md에 "d512 3-seed" 표로 (naive s96/s97 대비 paired). ~3-4h/런.
 
 ### W2. 기존방법 baseline + optzone 분해 (W1 끝나는 GPU부터)
@@ -48,4 +48,4 @@
 - [PENDING] lm loop_ours_3b_lr8 — `./run_loop.sh <g> loop_ours_3b_lr8 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_param_lr_mult 8 --bs 8 --token_budget 3000000000` (lr 정점 미세화: 8 vs 16)
 
 ## 완료 로그 (node2가 갱신)
-(없음)
+- 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
