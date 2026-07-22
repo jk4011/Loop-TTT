@@ -56,7 +56,8 @@ print(f"params: {n_params/1e6:.1f}M", flush=True)
 # ---- optimizer with optzone grouping (same as train.py) ----
 LOOP_PARAM_KEYS = ("loop_film", "branch_gate", "state_gate", "loop_rho",
                    "loop_gate_bias", "loop_rot", "loop_temp", "qkv_a", "qkv_b",
-                   "branch_shift", "state_shift")
+                   "branch_shift", "state_shift",
+                   "loop_hscale", "loop_hshift", "loop_qkv_s", "loop_qkv_b", "loop_out_s", "loop_out_b")
 def _is_loop_param(name):
     return args.loop_param_lr_mult > 0 and any(k in name for k in LOOP_PARAM_KEYS)
 decay = [q for n, q in model.named_parameters() if q.dim() >= 2 and not _is_loop_param(n)]

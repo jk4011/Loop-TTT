@@ -1,0 +1,32 @@
+# LM: inner-affine ONLY (no dials)
+vocab_size: 50257
+dim: 256
+layers: 2
+n_loops: 4
+seq_len: 1024
+ttt_chunk: 256
+block_config:
+  - type: model.SelfAttention
+    length_dim: vl
+    params:
+      head_dim: 64
+      use_qk_norm: true
+      causal: true
+      loop_inner: true
+      n_loops_max: 4
+  - type: lact_ttt_loop.LoopFastWeightGluMLPMultihead
+    length_dim: vl
+    params:
+      head_dim: 256
+      inter_multi: 2
+      base_lr: 0.01
+      muon_update_steps: 5
+      loop_mode: none
+      n_loops_max: 4
+      loop_inner: true
+  - type: model.MLP
+    length_dim: vl
+    params:
+      inter_multi: 4
+      loop_hidden: true
+      n_loops_max: 4

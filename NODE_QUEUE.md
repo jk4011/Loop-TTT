@@ -61,5 +61,14 @@
 - [RUNNING node2 gpu4 2026-07-22 16:44] r24_inner_only_lr64_s95 — `bash chain_run.sh 4 r24_inner_only_lr64_s95 config/loop_l2x4_inner_only_d256_p16.yaml 95 --loop_param_lr_mult 64`
   (config 존재 확인됨. gf 없이 inner만 — 분리측정)
 
+
+### W5. inner-affine LM 검증 (양 태스크 검증의 LM쪽 — 최경량 16M/WikiText, 기존 anchor 재활용:
+naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
+- [PENDING] lm_affine_inner_s95 — `CUDA_VISIBLE_DEVICES=<g> /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin/python train_lm.py --config config/lm_loop_l2x4_affine_inner.yaml --expname lm_affine_inner_s95 --data_dir /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/dataset/wikitext103_gpt2 --steps 12000 --bs 16 --seed 95 --val_every 3000 --loop_param_lr_mult 64 > outputs_lm_affine_inner.log 2>&1` (3다이얼+inner full; vs 59.14)
+- [PENDING] lm_affine_innerttt_s95 — 같은 형식, config `lm_loop_l2x4_affine_innerttt.yaml`, expname `lm_affine_innerttt_s95`, 로그 `outputs_lm_affine_innerttt.log` (TTT inner만)
+- [PENDING] lm_inner_only_s95 — 같은 형식, config `lm_loop_l2x4_inner_only.yaml`, expname `lm_inner_only_s95`, 로그 `outputs_lm_inner_only.log` (inner만; vs naive 74.45)
+- 주의: 실행 dir은 lact/lact_nvs (train_lm.py 위치). launch_exp의 TRITON/INDUCTOR 캐시 export 복사할 것.
+- 판정: outputs/<exp>/eval_lm.json의 val_loss/ppl.
+
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
