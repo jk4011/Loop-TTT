@@ -46,3 +46,11 @@ Baseline: LaCT (Large-Chunk TTT) + LVSM-style NVS, RE10K. 원 지시사항: `ini
 
 fast-weight gradient step = **update** (not "write" in code/docs), fast weights를 query에 사용 = **apply**.
 단, 우리 방법 서사에서 write/read 비유를 쓸 때는 명시적으로 (I8처럼).
+
+## 2-노드 운영 (2026-07-22~)
+
+- 노드가 2개일 수 있음(주 노드 B200×4 + 보조 노드 B200×6). lustre 공유.
+- **작업 큐 = `NODE_QUEUE.md`** (프로토콜 문서화됨). 주 노드 Claude가 설계·큐잉, 보조 노드
+  Claude가 claim→실행→기록. 실험명 노드 간 겹침 금지, 커밋 전 `git pull --rebase` 필수.
+- 보조 노드에서 이 폴더로 claude를 열면: 먼저 NODE_QUEUE.md를 읽고 프로토콜대로 진행할 것.
+  NVS 실험 전 /tmp/re10k reshard (NODE_QUEUE.md 준비 절 참조).

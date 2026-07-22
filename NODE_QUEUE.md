@@ -1,0 +1,51 @@
+# NODE_QUEUE — 노드 간 실험 작업 큐 (Claude ↔ Claude 협업)
+
+## 프로토콜 (두 노드의 Claude 모두 준수)
+
+- **역할**: node1 Claude(주 세션)가 실험을 설계해 여기에 추가. node2 Claude는 이 파일을 보고
+  `[PENDING]` 항목을 위에서부터 claim해 실행한다.
+- **Claim**: 실행 시작 전에 해당 항목을 `[RUNNING node2 gpu<i> <시각>]`으로 수정-저장.
+  (출력 dir `outputs/<exp>`가 이미 존재하고 train.log가 갱신 중이면 남이 돌리는 것 — 건드리지 말 것.)
+- **완료**: eval 결과가 나오면 `[DONE ppl/psnr=...]`로 갱신하고, RESULTS.md에 항목 규격대로 추가.
+- **git**: 커밋 전 반드시 `git pull --rebase`. 충돌 시 RESULTS/NODE_QUEUE는 양쪽 내용 보존(append 성격).
+  체크포인트(*.pth,*.pt)는 절대 커밋 금지(.gitignore 됨).
+- **노드 준비(node2 최초 1회)**: NVS 실험 전 `/tmp/re10k` reshard 필요:
+  `bash lact/lact_nvs/node2_batch.sh`의 1단계 참조 또는:
+  ```
+  PY=/NHNHOME/WORKSPACE/26msit001_A/jinhyeok/envs/lvsm/bin/python
+  $PY lact/lact_nvs/data_preprocess/reshard_re10k.py --src /NHNHOME/WORKSPACE/26msit001_A/V-LAB/Datasets/re10k/train --odir /tmp/re10k/train --index /tmp/re10k/train_index.json --workers 16
+  $PY lact/lact_nvs/data_preprocess/reshard_re10k.py --src /NHNHOME/WORKSPACE/26msit001_A/V-LAB/Datasets/re10k/test  --odir /tmp/re10k/test  --index /tmp/re10k/test_index.json  --workers 16
+  ```
+- **실행 관례**: NVS는 `lact/lact_nvs`에서 `bash chain_run.sh <gpu> <exp> <config> <seed> [args]`
+  (훈련→eval 자동). LLM은 `lact/lact_llm_loop`에서 `./run_loop.sh <gpu> <exp> [args]`.
+  node2는 GPU 0-5 (6개). 실험명은 아래 큐에 적힌 그대로 사용(노드 간 충돌 방지의 핵심).
+- **판정 기준**: NVS는 `python compare_evals.py outputs/r1_loop_l2x4_s<seed>/eval.json outputs/<exp>/eval.json`
+  (동일 seed paired). LLM은 train.log 마지막 VAL ppl.
+
+## 큐
+
+### W1. d512 스케일업 3-seed 완성 (6런 = GPU 0-5에 병렬)
+- [PENDING] r22_d512_naive_s96 — `bash chain_run.sh 0 r22_d512_naive_s96 config/loop_l2x4_d512_p16.yaml 96`
+- [PENDING] r22_d512_naive_s97 — `bash chain_run.sh 1 r22_d512_naive_s97 config/loop_l2x4_d512_p16.yaml 97`
+- [PENDING] r22_d512_gf_lr64_s96 — `bash chain_run.sh 2 r22_d512_gf_lr64_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 64`
+- [PENDING] r22_d512_gf_lr64_s97 — `bash chain_run.sh 3 r22_d512_gf_lr64_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 64`
+- [PENDING] r22_d512_gf_lr16_s96 — `bash chain_run.sh 4 r22_d512_gf_lr16_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 16`
+- [PENDING] r22_d512_gf_lr16_s97 — `bash chain_run.sh 5 r22_d512_gf_lr16_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 16`
+- 기록: RESULTS.md에 "d512 3-seed" 표로 (naive s96/s97 대비 paired). ~3-4h/런.
+
+### W2. 기존방법 baseline + optzone 분해 (W1 끝나는 GPU부터)
+- [PENDING] r23_dvlt_oz_s95 — `bash chain_run.sh <g> r23_dvlt_oz_s95 config/loop_l2x4_dvlt_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (주의: dvlt의 다이얼은 MLP 생성형 — optzone 키에 dvlt_mlp가 안 잡히므로 train.py LOOP_PARAM_KEYS에
+  "dvlt_mlp" 추가 필요. node2가 수정 시 커밋 메시지에 명시.)
+- [PENDING] r23_adaln_oz_s95 — `bash chain_run.sh <g> r23_adaln_oz_s95 config/loop_l2x4_adaln_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (같은 이유로 "adaln_emb","adaln_mlp" 키 추가 필요)
+- [PENDING] r23_layerscale_oz_s95 — `bash chain_run.sh <g> r23_layerscale_oz_s95 config/loop_l2x4_layerscale_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  ("lscale" 키 추가 필요)
+- 기록: 표준-옵티마이저 버전(r23_*, node1에서 실행 중)과 나란히 표로 — "형태 vs 옵티마이저" 분해가 목적.
+
+### W3. LM 백로그 (여유 GPU 시)
+- [PENDING] perlayer 3B pair는 보류(0.5B에서 이미 결론). 대신:
+- [PENDING] lm loop_ours_3b_lr8 — `./run_loop.sh <g> loop_ours_3b_lr8 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_param_lr_mult 8 --bs 8 --token_budget 3000000000` (lr 정점 미세화: 8 vs 16)
+
+## 완료 로그 (node2가 갱신)
+(없음)
