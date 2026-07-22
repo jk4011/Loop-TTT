@@ -51,8 +51,8 @@
 
 ### W3. LM 백로그 (여유 GPU 시)
 - [PENDING] perlayer 3B pair는 보류(0.5B에서 이미 결론). 대신:
-- [RUNNING node2 gpu2 2026-07-22 15:52] lm loop_ours_3b_lr8 — `./run_loop.sh 2 loop_ours_3b_lr8 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_param_lr_mult 8 --bs 8 --token_budget 3000000000` (lr 정점 미세화: 8 vs 16)
-  (1차 시도 HF 429 rate-limit로 실패 — fineweb-edu 스트리밍이 IP-공유 창 초과. rate-limit 창 리셋 후 지연 재시도 중.)
+- [DONE ppl=21.05] lm loop_ours_3b_lr8 — `./run_loop.sh 2 loop_ours_3b_lr8 --num_hidden_layers 3 --n_loops 4 --loop_dials true --loop_param_lr_mult 8 --bs 8 --token_budget 3000000000` (lr 정점 미세화: 8 vs 16)
+  (**ppl 21.05 (3B, 91552 steps). lr16 앵커 20.854 < lr8 21.05 → LM 3B 정점은 lr16. HF 429는 지연 재시도(attempt 2)로 극복. RESULTS.md 3B 사다리에 기록됨.**)
 
 
 ### W4. inner-affine "사이사이" (사용자 아이디어: 공유 행렬 사이 전 이음새에 loop별 affine)
