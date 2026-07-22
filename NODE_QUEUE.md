@@ -138,9 +138,9 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 
 ### W9. 후속 (node1 실행 중, 2026-07-22 22:4x)
 - [DONE ppl=55.81] lm_affine_innerqkv_s95 — `./run_lm_w5.sh 0 config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s95 outputs_lm_affine_innerqkv.log` (**55.81 ≈ full 55.20, 3다이얼 59.14 대비 −3.3 — qkv측 2사이트가 full 이득의 ~85%. 교차태스크 미니멀 처방 성립. RESULTS.md 기록.**)
-- [RUNNING node1 gpu1] r25_d512_gfinner_lr128_s95 — `bash chain_run.sh 1 r25_d512_gfinner_lr128_s95 config/loop_l2x4_gf_inner_d512_p16.yaml 95 --loop_param_lr_mult 128` (풀스택 d512 스케일 확인; 비교: d512 gf lr128 s95 +0.703)
-- [RUNNING node1 gpu2] r24_gf_inner_qkv_lr64_s96 — `bash chain_run.sh 2 r24_gf_inner_qkv_lr64_s96 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64` (미니멀 후보 gf+qkv 승격)
-- [RUNNING node1 gpu3] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
+- [DONE PSNR=24.551 Δ+0.767] r25_d512_gfinner_lr128_s95 — `bash chain_run.sh 1 r25_d512_gfinner_lr128_s95 config/loop_l2x4_gf_inner_d512_p16.yaml 95 --loop_param_lr_mult 128` (풀스택 d512 스케일 확인; 비교: d512 gf lr128 s95 +0.703)
+- [DONE PSNR=22.684 Δ+0.596] r24_gf_inner_qkv_lr64_s96 — `bash chain_run.sh 2 r24_gf_inner_qkv_lr64_s96 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64` (미니멀 후보 gf+qkv 승격)
+- [DONE PSNR=22.512 Δ+0.452] r24_gf_inner_qkv_lr64_s97 — `bash chain_run.sh 3 r24_gf_inner_qkv_lr64_s97 config/loop_l2x4_gf_inner_qkv_d256_p16.yaml 97 --loop_param_lr_mult 64`
 
 ### W10. 절대 처리량 — 알맞은 baseline 포함 벤치 (사용자 요청: 비루프 모델 대비)
 - [DONE 아래 8줄] bench_baselines_d512 — `bash bench_baselines.sh <g> d512` (lact/lact_nvs에서, 단독 GPU ~1.3h.
@@ -198,7 +198,13 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
   (**해석: naive 3L×4 205,390 ≈ orig_12L 203,990 tok/s → loop naive와 12L 고유깊이가 iso-compute
   (처리량 동일) 대형서도 확인. 다이얼 오버헤드(eager): 3다이얼 −11.1%, dials+inner −20.1%. 파라미터는
   다이얼 +0.05M/inner +0.2M로 사실상 무료. compile 시 오버헤드 대부분 회수됨(W8·W10 참조).**)
-- (참고: W10의 bench_baselines_d512(48M L8 포함)도 같은 목적의 NVS쪽 대형 측정 — 아직 PENDING이면 우선 실행)
+- [RUNNING node1 gpu1 2026-07-23 03:0x] bench_baselines_d512 — `bash bench_baselines.sh 1 d512` (node1이 직접 실행; gpu0 훈련 1개 동시라 절대값에 소폭 경합 있음, 세션 내 상대비교 유효)
+
+### W14. d512 풀스택 seed 승격 (+0.767 s95의 확정)
+- [RUNNING node1 gpu2 2026-07-23 03:0x] r25_d512_gfinner_lr128_s96 — `bash chain_run.sh 2 r25_d512_gfinner_lr128_s96 config/loop_l2x4_gf_inner_d512_p16.yaml 96 --loop_param_lr_mult 128` (paired 기준 r22_d512_naive_s96)
+- [RUNNING node1 gpu3 2026-07-23 03:0x] r25_d512_gfinner_lr128_s97 — 같은 형식, seed 97 (paired 기준 r22_d512_naive_s97)
+- 큐 노트: qkv-only 가산이 NVS 3-seed에서 무너짐(+0.019, s97 음성) → NVS 대표 구성은 full inner로 확정,
+  그 d512 스케일 검증이 본 웨이브. RESULTS.md W9 절 참조.
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
