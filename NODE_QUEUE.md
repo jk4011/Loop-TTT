@@ -174,5 +174,13 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 ### W12. LM 미니멀 처방 2-seed
 - [PENDING] lm_affine_innerqkv_s96 — `./run_lm_w5.sh <g> config/lm_loop_l2x4_affine_innerqkv.yaml lm_affine_innerqkv_s96 outputs_lm_affine_innerqkv_s96.log --seed 96` (s95 55.81의 재현)
 
+### W13. ★대형 모델 절대 처리량★ (사용자 요청 — d256 벤치는 3.9M로 너무 작음)
+- [PENDING] bench_llm_throughput — lact/lact_llm_loop에서:
+  `CUDA_VISIBLE_DEVICES=<g> /NHNHOME/WORKSPACE/26msit001_A/jinhyeok/TTT_camera_embedding/.venv_llm/bin/python bench_throughput.py > bench_llm.log 2>&1`
+  (d768/seq4096/bs8 실런 설정, 합성 토큰이라 HF 스트리밍 불필요. 12L고유(iso-compute 준거)/3L/naive
+  3L×4/3다이얼/다이얼+inner 5종 순차, ~20분. 결과 5줄을 이 항목 DONE 노트에 기록.
+  TRITON_CACHE_DIR/TORCHINDUCTOR_CACHE_DIR는 run_loop.sh와 동일하게 export 후 실행.)
+- (참고: W10의 bench_baselines_d512(48M L8 포함)도 같은 목적의 NVS쪽 대형 측정 — 아직 PENDING이면 우선 실행)
+
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
