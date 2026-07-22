@@ -32,8 +32,8 @@
 ## 큐
 
 ### W1. d512 스케일업 3-seed 완성 (6런 = GPU 0-5에 병렬)
-- [RUNNING node2 gpu0 2026-07-22 13:18] r22_d512_naive_s96 — `bash chain_run.sh 0 r22_d512_naive_s96 config/loop_l2x4_d512_p16.yaml 96`
-- [RUNNING node2 gpu1 2026-07-22 13:18] r22_d512_naive_s97 — `bash chain_run.sh 1 r22_d512_naive_s97 config/loop_l2x4_d512_p16.yaml 97`
+- [DONE PSNR=23.756 LPIPS=0.2187] r22_d512_naive_s96 — `bash chain_run.sh 0 r22_d512_naive_s96 config/loop_l2x4_d512_p16.yaml 96`
+- [DONE PSNR=23.789 LPIPS=0.2183] r22_d512_naive_s97 — `bash chain_run.sh 1 r22_d512_naive_s97 config/loop_l2x4_d512_p16.yaml 97`
 - [RUNNING node2 gpu2 2026-07-22 13:18] r22_d512_gf_lr64_s96 — `bash chain_run.sh 2 r22_d512_gf_lr64_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 64`
 - [RUNNING node2 gpu3 2026-07-22 13:18] r22_d512_gf_lr64_s97 — `bash chain_run.sh 3 r22_d512_gf_lr64_s97 config/loop_l2x4_gates_film_d512_p16.yaml 97 --loop_param_lr_mult 64`
 - [RUNNING node2 gpu4 2026-07-22 13:18] r22_d512_gf_lr16_s96 — `bash chain_run.sh 4 r22_d512_gf_lr16_s96 config/loop_l2x4_gates_film_d512_p16.yaml 96 --loop_param_lr_mult 16`
@@ -41,13 +41,12 @@
 - 기록: RESULTS.md에 "d512 3-seed" 표로 (naive s96/s97 대비 paired). ~3-4h/런.
 
 ### W2. 기존방법 baseline + optzone 분해 (W1 끝나는 GPU부터)
-- [PENDING] r23_dvlt_oz_s95 — `bash chain_run.sh <g> r23_dvlt_oz_s95 config/loop_l2x4_dvlt_d256_p16.yaml 95 --loop_param_lr_mult 64`
-  (주의: dvlt의 다이얼은 MLP 생성형 — optzone 키에 dvlt_mlp가 안 잡히므로 train.py LOOP_PARAM_KEYS에
-  "dvlt_mlp" 추가 필요. node2가 수정 시 커밋 메시지에 명시.)
-- [PENDING] r23_adaln_oz_s95 — `bash chain_run.sh <g> r23_adaln_oz_s95 config/loop_l2x4_adaln_d256_p16.yaml 95 --loop_param_lr_mult 64`
-  (같은 이유로 "adaln_emb","adaln_mlp" 키 추가 필요)
+- [RUNNING node2 gpu0 2026-07-22 15:38] r23_dvlt_oz_s95 — `bash chain_run.sh 0 r23_dvlt_oz_s95 config/loop_l2x4_dvlt_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (LOOP_PARAM_KEYS에 dvlt_mlp 추가 완료: commit e1f064d. dvlt_temb은 buffer라 제외.)
+- [RUNNING node2 gpu1 2026-07-22 15:38] r23_adaln_oz_s95 — `bash chain_run.sh 1 r23_adaln_oz_s95 config/loop_l2x4_adaln_d256_p16.yaml 95 --loop_param_lr_mult 64`
+  (adaln_emb/adaln_mlp 키 추가 완료: commit e1f064d.)
 - [PENDING] r23_layerscale_oz_s95 — `bash chain_run.sh <g> r23_layerscale_oz_s95 config/loop_l2x4_layerscale_d256_p16.yaml 95 --loop_param_lr_mult 64`
-  ("lscale" 키 추가 필요)
+  (lscale 키 추가 완료: commit e1f064d. W1 gf 런 종료 GPU에 투입 예정.)
 - 기록: 표준-옵티마이저 버전(r23_*, node1에서 실행 중)과 나란히 표로 — "형태 vs 옵티마이저" 분해가 목적.
 
 ### W3. LM 백로그 (여유 GPU 시)
