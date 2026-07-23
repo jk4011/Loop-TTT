@@ -214,15 +214,15 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [DONE] bench_llm_throughput+COMPILE — 3다이얼 −11.1%→**−3.7%**, dials+inner −20.1%→**−7.2%** (compile, naive 대비). 회수 검증 완료, RESULTS.md W13b 절.
 
 ### W15. L1×8 3-seed 승격 (s95 발견: inner 가산 3.6× 증폭 + 2.47M 극한압축 후보)
-- [RUNNING node1 gpu0 2026-07-23] r26_loop_l1x8_s96 — `bash chain_run.sh 0 r26_loop_l1x8_s96 config/loop_l1x8_d256_p16.yaml 96` (앵커)
-- [RUNNING node1 gpu1 2026-07-23] r26_loop_l1x8_s97 — 같은 형식, seed 97 (앵커)
-- [RUNNING node1 gpu2 2026-07-23] r26_l1x8_gfqkv_s96 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s96 config/loop_l1x8_gf_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64`
-- [RUNNING node1 gpu3 2026-07-23] r26_l1x8_gfqkv_s97 — 같은 형식, seed 97
+- [DONE PSNR=22.153] r26_loop_l1x8_s96 — `bash chain_run.sh 0 r26_loop_l1x8_s96 config/loop_l1x8_d256_p16.yaml 96` (앵커)
+- [DONE PSNR=21.986] r26_loop_l1x8_s97 — 같은 형식, seed 97 (앵커)
+- [DONE PSNR=22.705 Δ+0.552] r26_l1x8_gfqkv_s96 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s96 config/loop_l1x8_gf_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64`
+- [DONE PSNR=22.666 Δ+0.680] r26_l1x8_gfqkv_s97 — 같은 형식, seed 97
 - [DONE PSNR=22.604 Δ+0.451] r26_l1x8_gf_s96 — `bash chain_run.sh 1 r26_l1x8_gf_s96 config/loop_l1x8_gates_film_d256_p16.yaml 96 --loop_param_lr_mult 64` (gf-inner 분해 유지용)
   (**t=22.3. ★L1×8 gf 3-seed 확정: +0.484/+0.451/+0.608 → 평균 +0.514, 3/3 유의.★ inner 가산(gfqkv−gf) 3-seed는 node1의 gfqkv s96/s97 필요(s95는 +0.280). RESULTS.md 기록됨. W15 node2 몫 완료.**)
 - [DONE PSNR=22.595 Δ+0.608] r26_l1x8_gf_s97 — 같은 형식, seed 97 (gpu2)
   (**t=30.5, paired vs naive L1×8 s97 21.986. L1×8 gf 3-seed: s95 +0.484 / s97 +0.608 / s96 대기.**)
-- 판정: seed별 paired (naive_s{n} → gf_s{n} → gfqkv_s{n}). 관심량 = inner 가산(qkv−gf)의 3-seed 안정성.
+- 기록: **W15 완료. inner 가산 +0.151 (3/3), L1×8+gfqkv 22.714 @ 2.47M = L2×4 풀스택 동급. RESULTS.md 참조. 큐 비어 있음 — 다음 웨이브는 node1 설계 대기.**
 
 ## 완료 로그 (node2가 갱신)
 - 2026-07-22 13:18 node2 시작 보고: B200×6 확인(전부 유휴), setup_node.sh 완료 상태, /tmp/re10k reshard 진행 중(~3분). W1 6런 GPU 0-5 claim, reshard 완료 즉시 투입.
