@@ -218,8 +218,10 @@ naive 74.45 / 3다이얼 59.14. 각 1 GPU ~1.5h. lact/lact_nvs에서 실행)
 - [RUNNING node1 gpu1 2026-07-23] r26_loop_l1x8_s97 — 같은 형식, seed 97 (앵커)
 - [RUNNING node1 gpu2 2026-07-23] r26_l1x8_gfqkv_s96 — `bash chain_run.sh 2 r26_l1x8_gfqkv_s96 config/loop_l1x8_gf_qkv_d256_p16.yaml 96 --loop_param_lr_mult 64`
 - [RUNNING node1 gpu3 2026-07-23] r26_l1x8_gfqkv_s97 — 같은 형식, seed 97
-- [RUNNING node2 gpu1 2026-07-23 04:0x] r26_l1x8_gf_s96 — `bash chain_run.sh 1 r26_l1x8_gf_s96 config/loop_l1x8_gates_film_d256_p16.yaml 96 --loop_param_lr_mult 64` (gf-inner 분해 유지용)
-- [RUNNING node2 gpu2 2026-07-23 04:0x] r26_l1x8_gf_s97 — 같은 형식, seed 97 (gpu2)
+- [DONE PSNR=22.604 Δ+0.451] r26_l1x8_gf_s96 — `bash chain_run.sh 1 r26_l1x8_gf_s96 config/loop_l1x8_gates_film_d256_p16.yaml 96 --loop_param_lr_mult 64` (gf-inner 분해 유지용)
+  (**t=22.3. ★L1×8 gf 3-seed 확정: +0.484/+0.451/+0.608 → 평균 +0.514, 3/3 유의.★ inner 가산(gfqkv−gf) 3-seed는 node1의 gfqkv s96/s97 필요(s95는 +0.280). RESULTS.md 기록됨. W15 node2 몫 완료.**)
+- [DONE PSNR=22.595 Δ+0.608] r26_l1x8_gf_s97 — 같은 형식, seed 97 (gpu2)
+  (**t=30.5, paired vs naive L1×8 s97 21.986. L1×8 gf 3-seed: s95 +0.484 / s97 +0.608 / s96 대기.**)
 - 판정: seed별 paired (naive_s{n} → gf_s{n} → gfqkv_s{n}). 관심량 = inner 가산(qkv−gf)의 3-seed 안정성.
 
 ## 완료 로그 (node2가 갱신)
